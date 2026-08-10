@@ -1,0 +1,32 @@
+:root {
+  --color-bg: #f4f5f7;
+  --color-panel: #ffffff;
+  --color-text: #1c1c1c;
+  --color-border: #d8dadf;
+  --color-right: #d21f1f;
+  --color-left: #1f5fd2;
+  --color-accent: #2b2f38;
+  --radius: 10px;
+  --touch-min: 44px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+h1, h2, h3 {
+  margin: 0 0 0.5em;
+}

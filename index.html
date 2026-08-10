@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PTA Simulator</title>
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/layout.css" />
+<link rel="stylesheet" href="css/controls.css" />
+<link rel="stylesheet" href="css/audiogram.css" />
+<link rel="stylesheet" href="css/print.css" />
+</head>
+<body>
+<div class="app">
+
+  <div class="display-bar">
+    <div class="display-bar__stimulus">
+      <div class="display-bar__level" id="stimulus-level">40 dB</div>
+      <div class="display-bar__label" id="stimulus-label">Stimulus Tone - AC Transducer - Right</div>
+    </div>
+    <div class="display-bar__freq" id="freq-panel">
+      <span id="freq-readout">1000 Hz</span>
+      <div id="response-indicator"></div>
+    </div>
+    <div class="display-bar__masking">
+      <div class="display-bar__level" id="masking-level">[ 0 dB ]</div>
+      <div class="display-bar__label" id="masking-label">NBN - AC Transducer - Left Masking</div>
+    </div>
+  </div>
+
+  <div class="quick-select panel">
+    <div class="row row--primary" style="grid-row: r1;">
+      <span class="field-label">Ear</span>
+      <div class="toggle-group primary-toggle" role="group" aria-label="Test ear">
+        <button data-ear="right">Right</button>
+        <button data-ear="left">Left</button>
+      </div>
+    </div>
+
+    <div class="row row--primary" style="grid-row: r2;">
+      <span class="field-label">Mode</span>
+      <div class="toggle-group primary-toggle" role="group" aria-label="Test mode">
+        <button data-mode="AC">AC</button>
+        <button data-mode="BC">BC</button>
+      </div>
+    </div>
+
+    <div class="row row--primary" style="grid-row: r3;">
+      <span class="field-label">Freq</span>
+      <div class="freq-step">
+        <button id="freq-prev" class="touch-target">◀</button>
+        <span class="freq-hint" id="freq-hint-readout">—</span>
+        <button id="freq-next" class="touch-target">▶</button>
+      </div>
+    </div>
+
+    <div class="row updown-row" style="grid-row: r4;">
+      <div class="updown-col">
+        <span class="field-label updown-col__title">Level</span>
+        <div class="updown-group updown-group--wide">
+          <button id="level-up" aria-label="Increase level">▲</button>
+          <button id="level-down" aria-label="Decrease level">▼</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="grid-row: r5;">
+      <button id="present-btn" class="present-btn">Present Tone (Space)</button>
+    </div>
+
+    <div class="transducer-toggle" role="group" aria-label="AC Transducer type" style="grid-row: r7;">
+      <button data-transducer="headphone">Headphone</button>
+      <button data-transducer="insertphone">Insert</button>
+    </div>
+  </div>
+
+  <div class="chart-panel panel">
+    <div class="row">
+      <span class="field-label">View</span>
+      <div class="toggle-group" role="group" aria-label="Audiogram view">
+        <button data-chartview="combined" aria-pressed="true">Combined</button>
+        <button data-chartview="split" aria-pressed="false">Right / Left</button>
+      </div>
+    </div>
+    <div class="chart-view" id="chart-view">
+      <div class="audiogram-canvas-wrap" id="wrap-right">
+        <canvas id="audiogram-canvas-right"></canvas>
+      </div>
+      <div class="audiogram-canvas-wrap" id="wrap-left" hidden>
+        <canvas id="audiogram-canvas-left"></canvas>
+      </div>
+    </div>
+    <canvas id="audiogram-canvas-combined" style="position:absolute; left:-9999px; width:640px; height:420px;"></canvas>
+    <details class="legend-details">
+      <summary>Symbol Key</summary>
+      <div class="legend">
+        <div class="legend__item"><span style="color:#d21f1f">○</span> AC-R unmasked</div>
+        <div class="legend__item"><span style="color:#1f5fd2">X</span> AC-L unmasked</div>
+        <div class="legend__item"><span style="color:#d21f1f">●</span> AC-R masked</div>
+        <div class="legend__item"><span style="color:#1f5fd2">⤬</span> AC-L masked</div>
+        <div class="legend__item"><span style="color:#d21f1f">&lt;</span> BC-R unmasked</div>
+        <div class="legend__item"><span style="color:#1f5fd2">&gt;</span> BC-L unmasked</div>
+        <div class="legend__item"><span style="color:#d21f1f">◁</span> BC-R masked</div>
+        <div class="legend__item"><span style="color:#1f5fd2">▷</span> BC-L masked</div>
+        <div class="legend__item">↓ No response</div>
+      </div>
+    </details>
+    <div class="row chart-response-row">
+      <button id="no-response-btn" class="touch-target">No Response</button>
+      <button id="store-btn" class="touch-target">Store (S)</button>
+    </div>
+  </div>
+
+  <div class="mask-panel panel">
+    <div class="row updown-row" style="grid-row: r4;">
+      <div class="updown-col">
+        <span class="field-label updown-col__title">Masking</span>
+        <div class="updown-group updown-group--wide">
+          <button id="mask-up" aria-label="Increase masking level">▲</button>
+          <button id="mask-down" aria-label="Decrease masking level">▼</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row row--primary" style="grid-row: r5;">
+      <span class="field-label">Masking</span>
+      <div class="toggle-group primary-toggle" role="group" aria-label="Masking">
+        <button id="mask-on-btn" data-masking="on">On</button>
+        <button id="mask-off-btn" data-masking="off">Off</button>
+      </div>
+      <span class="masking-required" id="masking-required-flag">MASKING REQUIRED</span>
+    </div>
+  </div>
+
+  <div class="app-footer panel">
+    <span id="timer-display">00:00</span>
+    <label>Preset: <select id="preset-select"></select></label>
+    <button id="edit-thresholds-btn">Edit Thresholds</button>
+    <button id="export-pdf-btn">Save PDF</button>
+    <button id="options-btn">Options</button>
+    <button id="share-btn">Share</button>
+  </div>
+
+  <dialog id="patient-dialog">
+    <h3>Patient Setup</h3>
+    <div class="row">
+      <label>Name <input type="text" id="patient-name" /></label>
+      <label>ID <input type="text" id="patient-id" /></label>
+      <label>DOB <input type="date" id="patient-dob" /></label>
+    </div>
+    <div class="threshold-table-scroll">
+      <table id="threshold-table">
+        <thead><tr id="threshold-table-head"></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button id="close-dialog-btn">Close</button>
+  </dialog>
+
+  <dialog id="share-dialog">
+    <h3>Share</h3>
+    <div class="row">
+      <button id="export-json-btn">Export JSON</button>
+      <button id="import-json-btn">Import JSON</button>
+      <input type="file" id="import-json-input" accept="application/json" hidden />
+    </div>
+    <div class="row">
+      <label title="When on, links/JSON generated from Export or Copy Share Link will hide the Edit Thresholds button for whoever opens them — for handing a case to a student without exposing the answer key.">
+        <input type="checkbox" id="exam-mode-toggle" /> Exam Mode (lock thresholds for recipient)
+      </label>
+    </div>
+    <div class="row">
+      <button id="share-link-btn">Copy Share Link</button>
+    </div>
+    <button id="close-share-dialog-btn">Close</button>
+  </dialog>
+
+  <dialog id="options-dialog">
+    <h3>Options</h3>
+    <div class="row minor-settings">
+      <button id="sound-switch" class="switch-btn" type="button" aria-pressed="true">Tone: On</button>
+      <button id="direction-switch" class="switch-btn" type="button" aria-pressed="true">Up = Louder</button>
+      <button id="hints-switch" class="switch-btn" type="button" aria-pressed="false">Hints: Off</button>
+    </div>
+    <button id="close-options-dialog-btn">Close</button>
+  </dialog>
+
+</div>
+
+<script src="vendor/jspdf.umd.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

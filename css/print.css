@@ -1,0 +1,12 @@
+@media print {
+  .quick-select,
+  .display-bar,
+  .app-footer,
+  #patient-dialog {
+    display: none !important;
+  }
+
+  .chart-panel {
+    border: none;
+  }
+}
