@@ -2,16 +2,33 @@ import { formatDb, formatFreq, OTHER_EAR } from './utils.js';
 import { renderAudiogram } from './audiogram-chart.js';
 import { isMaskingRequired } from './masking-logic.js';
 import { createTonePlayer } from './tone-player.js';
+import { createNoisePlayer } from './noise-player.js';
 
 const RESPONSE_LIGHT_MS = 900;
-const PRESENT_DURATION_MS = 700;
 
 export function wireUi({ engine, patientModel, dom }) {
   let chartView = 'combined';
   let soundOn = true;
   let hintsOn = false;
   let examLocked = false;
+  let isPresenting = false;
   const tonePlayer = createTonePlayer();
+  const noisePlayer = createNoisePlayer();
+
+  // Masking noise is continuous while Masking is on (independent of tone
+  // presentation) and follows frequency changes, matching real audiometric
+  // practice. Idempotent so it can be called from any state-change handler.
+  function syncMaskingNoise(s) {
+    if (soundOn && s.maskingOn) {
+      if (noisePlayer.isPlaying()) {
+        noisePlayer.retune(s.freq);
+      } else {
+        noisePlayer.start(s.freq);
+      }
+    } else if (noisePlayer.isPlaying()) {
+      noisePlayer.stop();
+    }
+  }
 
   function cap(s) {
     return s.charAt(0).toUpperCase() + s.slice(1);
@@ -61,6 +78,36 @@ export function wireUi({ engine, patientModel, dom }) {
       patientModel,
     });
     dom.maskingRequiredFlag.classList.toggle('active', hintsOn && required);
+
+    refreshVisualPanel();
+    syncMaskingNoise(s);
+  }
+
+  function formatVisualLevel(v) {
+    return v === null || v === undefined ? '—' : formatDb(v);
+  }
+
+  function refreshVisualPanel() {
+    if (!hintsOn) {
+      ['right', 'left'].forEach((ear) => {
+        dom.visual[ear].tone.textContent = '—';
+        dom.visual[ear].masker.textContent = '—';
+        dom.visual[ear].threshold.textContent = '—';
+        dom.visual[ear].response.textContent = '—';
+        dom.visual[ear].last.textContent = '—';
+      });
+      return;
+    }
+    const v = engine.getVisualState();
+    ['right', 'left'].forEach((ear) => {
+      dom.visual[ear].tone.textContent = formatVisualLevel(v[ear].toneLevel);
+      dom.visual[ear].masker.textContent = formatVisualLevel(v[ear].maskerLevel);
+      dom.visual[ear].threshold.textContent = formatVisualLevel(v[ear].threshold);
+      dom.visual[ear].response.textContent = v[ear].responded === null || v[ear].responded === undefined
+        ? '—'
+        : (v[ear].responded ? 'Heard' : 'No response');
+      dom.visual[ear].last.textContent = formatVisualLevel(v[ear].lastLevel);
+    });
   }
 
   function refreshChart() {
@@ -97,13 +144,19 @@ export function wireUi({ engine, patientModel, dom }) {
     }, RESPONSE_LIGHT_MS);
   }
 
-  function presentTone() {
+  // Press-and-hold, mirroring the source simulator's Present Tone button
+  // (update(1) on mousedown starts the oscillator and evaluates the
+  // response immediately; update(0) on mouseup just ramps the tone back
+  // down) — the tone plays for exactly as long as the button/spacebar is
+  // held, rather than a fixed pulse duration.
+  function startPresenting() {
+    if (isPresenting) return null;
+    isPresenting = true;
     const s = engine.getState();
     dom.presentBtn.classList.add('presenting');
     if (soundOn) {
-      tonePlayer.play(s.freq, PRESENT_DURATION_MS / 1000);
+      tonePlayer.start(s.freq);
     }
-    setTimeout(() => dom.presentBtn.classList.remove('presenting'), PRESENT_DURATION_MS);
 
     const result = engine.presentTone();
     dom.responseIndicator.textContent = hintsOn
@@ -115,6 +168,13 @@ export function wireUi({ engine, patientModel, dom }) {
       clearResponseLight();
     }
     return result;
+  }
+
+  function stopPresenting() {
+    if (!isPresenting) return;
+    isPresenting = false;
+    dom.presentBtn.classList.remove('presenting');
+    tonePlayer.stop();
   }
 
   dom.earButtons.forEach((btn) => btn.addEventListener('click', () => { clearResponseLight(); engine.setTestEar(btn.dataset.ear); }));
@@ -155,11 +215,15 @@ export function wireUi({ engine, patientModel, dom }) {
     engine.storeThreshold(false);
     refreshChart();
   });
-  dom.presentBtn.addEventListener('click', presentTone);
+  dom.presentBtn.addEventListener('pointerdown', startPresenting);
+  dom.presentBtn.addEventListener('pointerup', stopPresenting);
+  dom.presentBtn.addEventListener('pointerleave', stopPresenting);
+  dom.presentBtn.addEventListener('pointercancel', stopPresenting);
   dom.soundSwitch.addEventListener('click', () => {
     soundOn = !soundOn;
     dom.soundSwitch.textContent = soundOn ? 'Tone: On' : 'Tone: Off';
     dom.soundSwitch.setAttribute('aria-pressed', String(soundOn));
+    syncMaskingNoise(engine.getState());
   });
   function setHints(on) {
     hintsOn = on;
@@ -179,6 +243,7 @@ export function wireUi({ engine, patientModel, dom }) {
   function setExamMode(locked) {
     examLocked = locked;
     dom.hintsSwitch.disabled = locked;
+    dom.visualDetails.hidden = locked;
     if (locked) setHints(false);
   }
 
@@ -186,5 +251,5 @@ export function wireUi({ engine, patientModel, dom }) {
   refreshDisplayBar();
   refreshChart();
 
-  return { refreshChart, refreshDisplayBar, presentTone, setExamMode };
+  return { refreshChart, refreshDisplayBar, startPresenting, stopPresenting, setExamMode };
 }

@@ -1,7 +1,15 @@
-export function wireKeyboardShortcuts({ engine, onStore, onLevelChange, onPresent }) {
+export function wireKeyboardShortcuts({ engine, onStore, onLevelChange, onPresentStart, onPresentEnd }) {
   function isTextInput(el) {
     return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
   }
+
+  document.addEventListener('keyup', (e) => {
+    if (isTextInput(document.activeElement)) return;
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      onPresentEnd?.();
+    }
+  });
 
   document.addEventListener('keydown', (e) => {
     if (isTextInput(document.activeElement)) return;
@@ -42,7 +50,7 @@ export function wireKeyboardShortcuts({ engine, onStore, onLevelChange, onPresen
       case ' ':
       case 'Spacebar':
         e.preventDefault();
-        onPresent?.();
+        if (!e.repeat) onPresentStart?.();
         break;
       default:
         break;

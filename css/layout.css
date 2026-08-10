@@ -114,3 +114,35 @@
     flex-direction: column;
   }
 }
+
+.rotate-hint {
+  display: none;
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+  .rotate-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #1f5fd2;
+    color: #fff;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .rotate-hint.dismissed {
+    display: none;
+  }
+
+  .rotate-hint button {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 4px;
+    touch-action: manipulation;
+  }
+}

@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#1f5fd2" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.json" />
 <title>PTA Simulator</title>
 <link rel="stylesheet" href="css/base.css" />
 <link rel="stylesheet" href="css/layout.css" />
@@ -11,6 +16,10 @@
 <link rel="stylesheet" href="css/print.css" />
 </head>
 <body>
+<div class="rotate-hint" id="rotate-hint">
+  <span>Rotate your device to landscape for the best experience.</span>
+  <button id="rotate-hint-dismiss" type="button" aria-label="Dismiss">✕</button>
+</div>
 <div class="app">
 
   <div class="display-bar">
@@ -65,12 +74,7 @@
     </div>
 
     <div class="row" style="grid-row: r5;">
-      <button id="present-btn" class="present-btn">Present Tone (Space)</button>
-    </div>
-
-    <div class="transducer-toggle" role="group" aria-label="AC Transducer type" style="grid-row: r7;">
-      <button data-transducer="headphone">Headphone</button>
-      <button data-transducer="insertphone">Insert</button>
+      <button id="present-btn" class="present-btn">Present</button>
     </div>
   </div>
 
@@ -105,6 +109,41 @@
         <div class="legend__item">↓ No response</div>
       </div>
     </details>
+    <details class="visual-details" id="visual-details">
+      <summary>Visual — Cochlea Levels</summary>
+      <table class="visual-table">
+        <thead>
+          <tr><th></th><th class="visual-table__right">Right Cochlea</th><th class="visual-table__left">Left Cochlea</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tone Level</td>
+            <td id="visual-right-tone">—</td>
+            <td id="visual-left-tone">—</td>
+          </tr>
+          <tr>
+            <td>Masker Level</td>
+            <td id="visual-right-masker">—</td>
+            <td id="visual-left-masker">—</td>
+          </tr>
+          <tr>
+            <td>Effective Threshold</td>
+            <td id="visual-right-threshold">—</td>
+            <td id="visual-left-threshold">—</td>
+          </tr>
+          <tr>
+            <td>Response</td>
+            <td id="visual-right-response">—</td>
+            <td id="visual-left-response">—</td>
+          </tr>
+          <tr>
+            <td>Last Level</td>
+            <td id="visual-right-last">—</td>
+            <td id="visual-left-last">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
     <div class="row chart-response-row">
       <button id="no-response-btn" class="touch-target">No Response</button>
       <button id="store-btn" class="touch-target">Store (S)</button>
@@ -112,6 +151,11 @@
   </div>
 
   <div class="mask-panel panel">
+    <div class="transducer-toggle" role="group" aria-label="AC Transducer type" style="grid-row: r1;">
+      <button data-transducer="headphone">Headphone</button>
+      <button data-transducer="insertphone">Insert</button>
+    </div>
+
     <div class="row updown-row" style="grid-row: r4;">
       <div class="updown-col">
         <span class="field-label updown-col__title">Masking</span>
@@ -172,6 +216,15 @@
     <div class="row">
       <button id="share-link-btn">Copy Share Link</button>
     </div>
+    <hr />
+    <div class="row wilding-import-row">
+      <label for="wilding-import-input">Import from PTA Simulator (Wilding) link</label>
+      <div class="wilding-import-controls">
+        <input type="text" id="wilding-import-input" placeholder="Paste a PTAsim.html share link…" />
+        <button id="wilding-import-btn">Import</button>
+      </div>
+      <div id="wilding-import-status" class="wilding-import-status"></div>
+    </div>
     <button id="close-share-dialog-btn">Close</button>
   </dialog>
 
@@ -188,6 +241,7 @@
 </div>
 
 <script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/lz-string.min.js"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

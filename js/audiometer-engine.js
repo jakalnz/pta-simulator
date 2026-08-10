@@ -24,6 +24,7 @@ export function createAudiometerEngine(patientModel) {
     toggleDirection: 'up-louder',
     lastResponse: null,
     noResponse: false,
+    cochleaResponse: { right: null, left: null },
   };
 
   const lastCochleaLevel = { right: -10, left: -10 };
@@ -154,6 +155,10 @@ export function createAudiometerEngine(patientModel) {
       overmasked,
       testCochleaLevel,
       contraCochleaLevel,
+      effectiveTestThreshold,
+      effectiveContraThreshold,
+      maskerAtContraCochlea: maskingOn ? maskingLevel - ipsiConductiveOther : null,
+      maskerCrossToTestCochlea: maskingOn && overmasked ? (testMode === 'AC' ? maskingLevel - cross : maskingLevel) : null,
     };
   }
 
@@ -165,6 +170,11 @@ export function createAudiometerEngine(patientModel) {
     // advances for a cochlea that actually responded this trial.
     if (result.testResponds) lastCochleaLevel[state.testEar] = result.testCochleaLevel;
     if (result.contraResponds) lastCochleaLevel[OTHER_EAR[state.testEar]] = result.contraCochleaLevel;
+    state.cochleaResponse = {
+      ...state.cochleaResponse,
+      [state.testEar]: result.testResponds,
+      [OTHER_EAR[state.testEar]]: result.contraResponds,
+    };
     if (state.maskingOn) {
       plateau.record(state.maskingLevel, result.heard);
     }
@@ -227,6 +237,38 @@ export function createAudiometerEngine(patientModel) {
     return plateau.isStable();
   }
 
+  /**
+   * Mirrors the source simulator's "Visual" foldout: for each cochlea, the
+   * tone level and masker level actually arriving there at the current dial
+   * settings, the effective threshold they're being judged against, the
+   * hysteresis anchor from the last response, and whether that cochlea
+   * responded on the last presentation. This is answer-key information
+   * (it shows *why* the simulated patient will or won't respond), so callers
+   * should only surface it when hints are enabled.
+   */
+  function getVisualState() {
+    const r = evaluateResponse();
+    const testEar = state.testEar;
+    const otherEar = OTHER_EAR[testEar];
+
+    const perEar = { right: {}, left: {} };
+    perEar[testEar] = {
+      toneLevel: r.testCochleaLevel,
+      maskerLevel: r.maskerCrossToTestCochlea,
+      threshold: r.effectiveTestThreshold,
+      lastLevel: lastCochleaLevel[testEar],
+      responded: state.cochleaResponse[testEar],
+    };
+    perEar[otherEar] = {
+      toneLevel: r.contraCochleaLevel,
+      maskerLevel: r.maskerAtContraCochlea,
+      threshold: r.effectiveContraThreshold,
+      lastLevel: lastCochleaLevel[otherEar],
+      responded: state.cochleaResponse[otherEar],
+    };
+    return perEar;
+  }
+
   return {
     getState,
     onChange,
@@ -245,5 +287,6 @@ export function createAudiometerEngine(patientModel) {
     clearStoredPoints,
     restoreStoredPoints,
     isPlateauStable,
+    getVisualState,
   };
 }

@@ -7,6 +7,11 @@ import { buildShareUrl, readShareUrl, applyShareData } from './share-link.js';
 import { exportPdf } from './pdf-export.js';
 import { createTimer } from './timer.js';
 import { wireKeyboardShortcuts } from './keyboard-shortcuts.js';
+import { initFullscreenLandscape, initRotateHint } from './fullscreen.js';
+import { parseWildingLink } from './wilding-import.js';
+
+initFullscreenLandscape();
+initRotateHint();
 
 const patientModel = createPatientModel();
 const engine = createAudiometerEngine(patientModel);
@@ -47,6 +52,23 @@ const dom = {
   presetSelect: document.getElementById('preset-select'),
   soundSwitch: document.getElementById('sound-switch'),
   directionSwitch: document.getElementById('direction-switch'),
+  visualDetails: document.getElementById('visual-details'),
+  visual: {
+    right: {
+      tone: document.getElementById('visual-right-tone'),
+      masker: document.getElementById('visual-right-masker'),
+      threshold: document.getElementById('visual-right-threshold'),
+      response: document.getElementById('visual-right-response'),
+      last: document.getElementById('visual-right-last'),
+    },
+    left: {
+      tone: document.getElementById('visual-left-tone'),
+      masker: document.getElementById('visual-left-masker'),
+      threshold: document.getElementById('visual-left-threshold'),
+      response: document.getElementById('visual-left-response'),
+      last: document.getElementById('visual-left-last'),
+    },
+  },
 };
 
 Object.entries(PRESETS).forEach(([key, preset]) => {
@@ -168,6 +190,44 @@ document.getElementById('share-link-btn').addEventListener('click', async () => 
   await navigator.clipboard.writeText(url);
 });
 
+const WILDING_UNLOCK_PASSWORD = '1234';
+const wildingImportStatus = document.getElementById('wilding-import-status');
+
+document.getElementById('wilding-import-btn').addEventListener('click', () => {
+  const input = document.getElementById('wilding-import-input');
+  wildingImportStatus.textContent = '';
+  wildingImportStatus.classList.remove('error');
+  let result;
+  try {
+    result = parseWildingLink(input.value);
+  } catch (err) {
+    wildingImportStatus.textContent = err.message;
+    wildingImportStatus.classList.add('error');
+    return;
+  }
+
+  // The source simulator's "hidey" flag hides its answer key from whoever
+  // opens the link — mirrored here as our own exam-mode lock. Since the
+  // person pasting the link in is presumably the instructor who made it,
+  // a password unlocks editing instead of locking them out of their own case.
+  let locked = result.locked;
+  if (result.locked) {
+    const entered = window.prompt('This is an exam-locked case. Enter the password to unlock editing (or Cancel to import it locked):');
+    if (entered === WILDING_UNLOCK_PASSWORD) locked = false;
+  }
+
+  patientModel.loadPatient(result.patient);
+  engine.clearStoredPoints();
+  ui.refreshChart();
+  editor.render();
+  applyLockState(locked);
+
+  wildingImportStatus.textContent = locked
+    ? 'Imported (locked — thresholds hidden, matching the source link\'s exam mode).'
+    : 'Imported.';
+  input.value = '';
+});
+
 const sharedData = readShareUrl();
 if (sharedData) {
   applyShareData(sharedData, { patientModel, engine });
@@ -188,10 +248,11 @@ wireKeyboardShortcuts({
     ui.refreshChart();
   },
   onLevelChange: startTimerOnce,
-  onPresent: () => {
+  onPresentStart: () => {
     startTimerOnce();
-    ui.presentTone();
+    ui.startPresenting();
   },
+  onPresentEnd: () => ui.stopPresenting(),
 });
 
 window.pta = { patientModel, engine, ui, editor, patientInfo, timer };
