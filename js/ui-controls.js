@@ -34,6 +34,11 @@ export function wireUi({ engine, patientModel, dom }) {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  function refreshSoundStatus() {
+    const upLouder = engine.getState().toggleDirection === 'up-louder';
+    dom.soundStatusFlag.textContent = `Sound: ${soundOn ? 'ON' : 'OFF'} · Up=${upLouder ? 'Louder' : 'Quieter'}`;
+  }
+
   function refreshDisplayBar() {
     const s = engine.getState();
     dom.stimulusLevel.textContent = formatDb(s.presentedLevel);
@@ -80,6 +85,7 @@ export function wireUi({ engine, patientModel, dom }) {
     dom.maskingRequiredFlag.classList.toggle('active', hintsOn && required);
 
     refreshVisualPanel();
+    refreshSoundStatus();
     syncMaskingNoise(s);
   }
 
@@ -224,6 +230,7 @@ export function wireUi({ engine, patientModel, dom }) {
     soundOn = !soundOn;
     dom.soundSwitch.textContent = soundOn ? 'Tone: On' : 'Tone: Off';
     dom.soundSwitch.setAttribute('aria-pressed', String(soundOn));
+    refreshSoundStatus();
     syncMaskingNoise(engine.getState());
   });
   function refreshHintsStatus() {

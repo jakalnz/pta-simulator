@@ -36,6 +36,7 @@ const dom = {
   maskOffBtn: document.getElementById('mask-off-btn'),
   maskingRequiredFlag: document.getElementById('masking-required-flag'),
   hintsStatusFlag: document.getElementById('hints-status-flag'),
+  soundStatusFlag: document.getElementById('sound-status-flag'),
   levelUpBtn: document.getElementById('level-up'),
   levelDownBtn: document.getElementById('level-down'),
   freqPrevBtn: document.getElementById('freq-prev'),

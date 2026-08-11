@@ -275,7 +275,8 @@
   visibility: visible;
 }
 
-.hints-status {
+.hints-status,
+.sound-status {
   font-size: 0.75rem;
   font-weight: 600;
   color: #1f8a2f;

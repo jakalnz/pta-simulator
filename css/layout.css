@@ -212,6 +212,14 @@
     display: none;
   }
 
+  /* Sound/direction and hints status are mirrored into the drawer tab
+     (see js/gutter-drawer.js) at this breakpoint, so showing them here
+     too would just be a redundant second copy. */
+  .hints-status,
+  .sound-status {
+    display: none;
+  }
+
   .legend-details,
   .visual-details {
     font-size: clamp(0.65rem, 1.6vh, 0.85rem);
