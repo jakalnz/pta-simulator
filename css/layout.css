@@ -178,11 +178,6 @@
     text-overflow: ellipsis;
   }
 
-  #response-indicator {
-    min-height: 0;
-    font-size: 0.65rem;
-  }
-
   .quick-select,
   .mask-panel,
   .quick-select .row,

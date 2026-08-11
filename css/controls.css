@@ -69,13 +69,6 @@
   background: #1f8a2f;
 }
 
-#response-indicator {
-  font-size: 0.8rem;
-  font-weight: 500;
-  min-height: 1.1em;
-  margin-top: 2px;
-}
-
 .display-bar__level {
   font-size: 2rem;
   font-weight: 700;
@@ -280,6 +273,14 @@
 
 .masking-required.active {
   visibility: visible;
+}
+
+.hints-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1f8a2f;
+  text-align: center;
+  align-self: end;
 }
 
 #patient-dialog {

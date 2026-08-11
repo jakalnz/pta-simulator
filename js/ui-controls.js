@@ -9,7 +9,7 @@ const RESPONSE_LIGHT_MS = 900;
 export function wireUi({ engine, patientModel, dom }) {
   let chartView = 'combined';
   let soundOn = true;
-  let hintsOn = false;
+  let hintsOn = true;
   let examLocked = false;
   let isPresenting = false;
   const tonePlayer = createTonePlayer();
@@ -159,9 +159,6 @@ export function wireUi({ engine, patientModel, dom }) {
     }
 
     const result = engine.presentTone();
-    dom.responseIndicator.textContent = hintsOn
-      ? (result.heard ? 'Response: HEARD' : 'Response: no response')
-      : '';
     if (result.heard) {
       flashResponseLight();
     } else {
@@ -229,10 +226,17 @@ export function wireUi({ engine, patientModel, dom }) {
     dom.soundSwitch.setAttribute('aria-pressed', String(soundOn));
     syncMaskingNoise(engine.getState());
   });
+  function refreshHintsStatus() {
+    dom.hintsStatusFlag.textContent = examLocked
+      ? 'Hints: DISABLED'
+      : `Hints: ${hintsOn ? 'ON' : 'OFF'}`;
+  }
+
   function setHints(on) {
     hintsOn = on;
     dom.hintsSwitch.textContent = hintsOn ? 'Hints: On' : 'Hints: Off';
     dom.hintsSwitch.setAttribute('aria-pressed', String(hintsOn));
+    refreshHintsStatus();
     refreshDisplayBar();
   }
 
@@ -241,16 +245,18 @@ export function wireUi({ engine, patientModel, dom }) {
     setHints(!hintsOn);
   });
 
-  // Hints (masking-required flag, heard/no-response readout) are answer-key
-  // information a supervisor shouldn't hand to a student in an exam case, so
-  // exam mode forces them off and disables the toggle for whoever opens it.
+  // Hints (masking-required flag) are answer-key information a supervisor
+  // shouldn't hand to a student in an exam case, so exam mode forces them
+  // off and disables the toggle for whoever opens it.
   function setExamMode(locked) {
     examLocked = locked;
     dom.hintsSwitch.disabled = locked;
     dom.visualDetails.hidden = locked;
     if (locked) setHints(false);
+    refreshHintsStatus();
   }
 
+  setHints(hintsOn);
   engine.onChange(refreshDisplayBar);
   refreshDisplayBar();
   refreshChart();

@@ -29,7 +29,6 @@
     </div>
     <div class="display-bar__freq" id="freq-panel">
       <span id="freq-readout">1000 Hz</span>
-      <div id="response-indicator"></div>
     </div>
     <div class="display-bar__masking">
       <div class="display-bar__level" id="masking-level">[ 0 dB ]</div>
@@ -174,6 +173,8 @@
       </div>
       <span class="masking-required" id="masking-required-flag">MASKING REQUIRED</span>
     </div>
+
+    <div class="hints-status" id="hints-status-flag" style="grid-row: r8;">Hints: ON</div>
   </div>
 
   <div class="app-footer panel">
@@ -242,7 +243,7 @@
     <div class="row minor-settings">
       <button id="sound-switch" class="switch-btn" type="button" aria-pressed="true">Tone: On</button>
       <button id="direction-switch" class="switch-btn" type="button" aria-pressed="true">Up = Louder</button>
-      <button id="hints-switch" class="switch-btn" type="button" aria-pressed="false">Hints: Off</button>
+      <button id="hints-switch" class="switch-btn" type="button" aria-pressed="true">Hints: On</button>
     </div>
     <button id="close-options-dialog-btn">Close</button>
   </dialog>
