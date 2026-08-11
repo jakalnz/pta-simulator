@@ -380,3 +380,64 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Mobile landscape overrides — see the matching @media block and comment
+   in css/layout.css for why these live here rather than there: this file
+   loads after layout.css and its base button/label rules would otherwise
+   win the cascade over same-specificity overrides placed earlier. */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Row labels (Ear / Mode / Freq / Level / Masking) are dropped at this
+     size — the controls are self-explanatory (Right/Left, AC/BC, the
+     frequency value itself, up/down arrows) and the label lines cost more
+     vertical space than the short landscape viewport can spare. */
+  .quick-select .field-label,
+  .mask-panel .field-label,
+  .quick-select .updown-col__title,
+  .mask-panel .updown-col__title {
+    display: none;
+  }
+
+  .updown-row {
+    gap: 10px;
+  }
+
+  /* Stack the up/down arrows side-by-side instead of vertically here —
+     halves the height of the Level and Masking controls, which is the
+     biggest single win for fitting everything above the fold. */
+  .updown-group {
+    flex-direction: row;
+  }
+
+  .present-btn,
+  .updown-group button,
+  .toggle-group button,
+  .transducer-toggle button,
+  #no-response-btn,
+  #store-btn {
+    min-height: 32px;
+    padding: clamp(1px, 0.5vh, 6px) clamp(4px, 1.2vw, 10px);
+  }
+
+  .updown-group button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .updown-group--wide button {
+    width: 40px;
+  }
+
+  .primary-toggle button {
+    padding: clamp(2px, 0.6vh, 8px) 10px;
+    font-size: 0.85rem;
+  }
+
+  .present-btn {
+    padding: clamp(4px, 1vh, 10px);
+    font-size: 0.9rem;
+  }
+
+  .transducer-toggle {
+    margin-top: 0;
+  }
+}

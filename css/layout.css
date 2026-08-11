@@ -117,48 +117,87 @@
 
 /* Mobile landscape: keep the 3-column HUD, scale it to fit the short
    viewport with clamp() instead of reflowing to a stack, and move
-   secondary controls into the gutter drawer (see js/gutter-drawer.js). */
+   secondary controls into the gutter drawer (see js/gutter-drawer.js).
+   The rest of this breakpoint's rules live at the end of controls.css —
+   controls.css loads after this file, and several of its base rules
+   (.present-btn, .updown-group, .toggle-group button, etc.) set the same
+   properties at equal specificity, so overrides placed here would lose
+   the cascade regardless of being inside a matching @media block. */
 .gutter-drawer {
   display: none;
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
   .app {
-    grid-template-columns: clamp(150px, 22vw, 220px) 1fr clamp(120px, 18vw, 180px);
-    gap: clamp(4px, 1vw, 10px);
-    padding: clamp(4px, 1vh, 10px);
+    /* r1..r8 individually auto-sizing rows (used for desktop subgrid
+       alignment) would grow to fit the tallest cell spanning them —
+       e.g. the audiogram canvas's 280px floor — which pushed .app taller
+       than the viewport and made the whole page scroll instead of just
+       the panel that needed it. Collapse to a single flexible row here:
+       height is now a hard cap (not just a floor), so quick-select /
+       chart-panel / mask-panel each get exactly the leftover space and
+       scroll internally (see their overflow-y: auto below) if their own
+       content still doesn't fit. */
+    grid-template-rows: auto [r1] minmax(0, 1fr) [footer] auto;
+    grid-template-columns: clamp(120px, 18vw, 180px) 1fr clamp(100px, 14vw, 150px);
+    gap: clamp(3px, 0.8vw, 8px);
+    padding: clamp(3px, 0.8vh, 8px);
+    height: 100svh;
     min-height: 100svh;
-    padding-bottom: calc(clamp(4px, 1vh, 10px) + var(--gutter-tab-height));
-  }
-
-  .display-bar__stimulus,
-  .display-bar__masking {
-    padding: clamp(2px, 0.6vh, 6px) 10px;
-  }
-
-  .display-bar__freq {
-    padding: clamp(2px, 0.6vh, 6px) 12px;
-    font-size: clamp(0.85rem, 2.4vh, 1.4rem);
-    min-width: 0;
-  }
-
-  .display-bar__level {
-    font-size: clamp(0.9rem, 2.6vh, 1.6rem);
+    padding-bottom: calc(clamp(3px, 0.8vh, 8px) + var(--gutter-tab-height));
   }
 
   .quick-select,
   .mask-panel {
-    row-gap: clamp(4px, 1vh, 10px);
-    font-size: clamp(0.7rem, 1.8vh, 0.9rem);
+    display: flex;
+    flex-direction: column;
+    grid-template-rows: none;
+    overflow-y: auto;
+    min-height: 0;
   }
 
-  .present-btn,
-  .updown-group button,
-  .toggle-group button,
-  #no-response-btn,
-  #store-btn {
-    min-height: 40px;
-    padding: clamp(2px, 0.8vh, 8px) clamp(6px, 1.5vw, 14px);
+  .display-bar__stimulus,
+  .display-bar__masking {
+    padding: clamp(1px, 0.4vh, 4px) 8px;
+  }
+
+  .display-bar__freq {
+    padding: clamp(1px, 0.4vh, 4px) 10px;
+    font-size: clamp(0.7rem, 1.8vh, 1rem);
+    min-width: 0;
+  }
+
+  .display-bar__level {
+    font-size: clamp(0.8rem, 2.2vh, 1.2rem);
+  }
+
+  .display-bar__label {
+    font-size: clamp(0.5rem, 1.1vh, 0.65rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #response-indicator {
+    min-height: 0;
+    font-size: 0.65rem;
+  }
+
+  .quick-select,
+  .mask-panel,
+  .quick-select .row,
+  .mask-panel .row {
+    /* Grid/flex items default to min-width: auto, so their min-content
+       size (e.g. unbreakable button text) can blow out past a narrow
+       track — both the subgrid columns themselves and each row inside
+       them. Force everything to actually respect the clamp()'d width. */
+    min-width: 0;
+  }
+
+  .quick-select,
+  .mask-panel {
+    row-gap: clamp(2px, 0.8vh, 6px);
+    font-size: clamp(0.7rem, 1.8vh, 0.9rem);
   }
 
   .chart-panel {

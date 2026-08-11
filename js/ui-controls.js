@@ -41,14 +41,14 @@ export function wireUi({ engine, patientModel, dom }) {
     dom.freqHintReadout.textContent = formatFreq(s.freq);
     dom.maskingLevel.textContent = `[ ${formatDb(s.maskingLevel)} ]`;
     const transducerLabel = s.transducer === 'insertphone' ? 'Insert' : 'Headphone';
-    const maskingStateLabel = s.maskingOn ? 'Masking On' : 'Masking Off';
+    const maskingStateLabel = s.maskingOn ? 'ON' : 'OFF';
     // Channel 1 (stimulus) route label reflects the actual test transducer —
     // "Bone" for BC (there is no headphone/insert path in that mode). Channel 2
     // (masking) noise is always delivered via the AC transducer regardless of
     // test mode, so it always names Headphone/Insert.
     const stimulusRouteLabel = s.testMode === 'BC' ? 'Bone' : transducerLabel;
     dom.stimulusLabel.textContent = `Stimulus Tone - ${stimulusRouteLabel} - ${cap(s.testEar)}`;
-    dom.maskingLabel.textContent = `NBN - ${transducerLabel} - ${cap(OTHER_EAR[s.testEar])} Masking - ${maskingStateLabel}`;
+    dom.maskingLabel.textContent = `NBN - ${transducerLabel} - ${cap(OTHER_EAR[s.testEar])} - ${maskingStateLabel}`;
 
     // Channel colour follows the test ear: test ear = red channel, contra ear = blue channel.
     // The masking (contra) channel is dimmed whenever masking is switched off.
