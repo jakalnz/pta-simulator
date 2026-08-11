@@ -167,54 +167,40 @@ function drawX(ctx, x, y, r, doubled) {
 }
 
 /**
- * Connecting lines only ever join points within the same series: same ear,
- * same modality, and same masked/unmasked status. This mirrors the source
- * simulator (audiogramscript.js buildplots()), where masked and unmasked
- * thresholds are built from separate data columns and never share a line —
- * a masked point at 1000Hz must never be joined to an unmasked point at 2000Hz.
- * No-response points are excluded entirely, breaking the line at that frequency.
- *
- * A series can still have gaps at frequencies that were only tested with the
- * *other* masked status (e.g. unmasked at 1k and 8k, masked-only at 2k-6k).
- * Drawing straight through those gaps would visually cut across the masked
- * symbols in between as if they weren't there, so the line breaks wherever
- * an intervening frequency has AC data recorded under the other status.
+ * One connecting line per ear, AC only — this matches Dr Wilding's source
+ * simulator (audiogramscript.js buildplots()), except that simulator does
+ * connect BC points too; here BC is never connected at all. The rule:
+ * - Thresholds at neighbouring tested frequencies are joined.
+ * - If a frequency has both a masked and an unmasked threshold, the masked
+ *   one supersedes the unmasked one for line-drawing purposes (both symbols
+ *   still get drawn — this only decides which one the line passes through).
+ * - No-response is not a threshold and is excluded, breaking the line there.
+ * - BC thresholds are never connected.
  */
 export function drawConnectingLines(ctx, points, width, height) {
-  const series = {};
-  const acByEarFreq = {}; // `${ear}|${freqIndex}` -> true, any AC status, for gap detection
+  const byEar = { right: new Map(), left: new Map() };
   points.forEach((p) => {
     if (p.mode !== 'AC' || p.noResponse) return;
-    const key = `${p.ear}|${p.masked}`;
-    series[key] = series[key] || { ear: p.ear, pts: [] };
-    series[key].pts.push(p);
-    acByEarFreq[`${p.ear}|${FREQUENCIES.indexOf(p.freq)}`] = true;
+    const freqIndex = FREQUENCIES.indexOf(p.freq);
+    const map = byEar[p.ear];
+    const existing = map.get(freqIndex);
+    if (!existing || (p.masked && !existing.masked)) {
+      map.set(freqIndex, p);
+    }
   });
 
-  Object.values(series).forEach(({ ear, pts }) => {
-    const sorted = [...pts].sort((a, b) => FREQUENCIES.indexOf(a.freq) - FREQUENCIES.indexOf(b.freq));
+  Object.entries(byEar).forEach(([ear, map]) => {
+    const sorted = [...map.entries()].sort((a, b) => a[0] - b[0]).map(([, p]) => p);
     if (sorted.length < 2) return;
     ctx.save();
     ctx.strokeStyle = COLORS[ear];
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    let prevFreqIndex = null;
     sorted.forEach((p, i) => {
       const x = freqToX(p.freq, width);
       const y = levelToY(p.level, height);
-      const freqIndex = FREQUENCIES.indexOf(p.freq);
-      let hasGapData = false;
-      if (prevFreqIndex !== null) {
-        for (let fi = prevFreqIndex + 1; fi < freqIndex; fi += 1) {
-          if (acByEarFreq[`${ear}|${fi}`]) {
-            hasGapData = true;
-            break;
-          }
-        }
-      }
-      if (i === 0 || hasGapData) ctx.moveTo(x, y);
+      if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
-      prevFreqIndex = freqIndex;
     });
     ctx.stroke();
     ctx.restore();
