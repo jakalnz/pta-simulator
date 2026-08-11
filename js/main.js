@@ -118,7 +118,12 @@ window.addEventListener('resize', () => ui.refreshChart());
 window.addEventListener('orientationchange', () => ui.refreshChart());
 
 const timerDisplayEl = document.getElementById('timer-display');
-initGutterDrawer({ timerDisplay: timerDisplayEl });
+initGutterDrawer({
+  timerDisplay: timerDisplayEl,
+  soundSwitch: dom.soundSwitch,
+  directionSwitch: dom.directionSwitch,
+  hintsStatusFlag: dom.hintsStatusFlag,
+});
 
 const timer = createTimer(timerDisplayEl);
 let timerStarted = false;

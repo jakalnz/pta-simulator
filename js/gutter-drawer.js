@@ -7,11 +7,13 @@
 // of the drawer, so they don't need to be tucked away.
 const LANDSCAPE_QUERY = '(orientation: landscape) and (max-height: 500px)';
 
-export function initGutterDrawer({ timerDisplay }) {
+export function initGutterDrawer({ timerDisplay, soundSwitch, directionSwitch, hintsStatusFlag }) {
   const drawer = document.getElementById('gutter-drawer');
   const tab = document.getElementById('gutter-drawer-tab');
   const panel = document.getElementById('gutter-drawer-panel');
   const tabTimer = document.getElementById('gutter-drawer-tab-timer');
+  const tabSound = document.getElementById('gutter-drawer-tab-sound');
+  const tabHints = document.getElementById('gutter-drawer-tab-hints');
   if (!drawer || !tab || !panel) return { close() {} };
 
   const relocated = [
@@ -73,6 +75,28 @@ export function initGutterDrawer({ timerDisplay }) {
       tabTimer.textContent = timerDisplay.textContent;
     });
     observer.observe(timerDisplay, { childList: true, characterData: true, subtree: true });
+  }
+
+  // Mirror the Options-dialog sound/direction toggles and the hints status
+  // badge into the drawer tab, so they're glanceable without opening it —
+  // same idea as the timer above. Sourced from aria-pressed rather than
+  // parsing textContent so the mirrored copy stays correct even if the
+  // source labels' wording changes later.
+  if (tabSound && soundSwitch && directionSwitch) {
+    const syncSound = () => {
+      const soundOn = soundSwitch.getAttribute('aria-pressed') === 'true';
+      const upLouder = directionSwitch.getAttribute('aria-pressed') === 'true';
+      tabSound.textContent = `Sound: ${soundOn ? 'ON' : 'OFF'} · Up=${upLouder ? 'Louder' : 'Quieter'}`;
+    };
+    new MutationObserver(syncSound).observe(soundSwitch, { attributes: true, attributeFilter: ['aria-pressed'] });
+    new MutationObserver(syncSound).observe(directionSwitch, { attributes: true, attributeFilter: ['aria-pressed'] });
+    syncSound();
+  }
+
+  if (tabHints && hintsStatusFlag) {
+    const syncHints = () => { tabHints.textContent = hintsStatusFlag.textContent; };
+    new MutationObserver(syncHints).observe(hintsStatusFlag, { childList: true, characterData: true, subtree: true });
+    syncHints();
   }
 
   window.addEventListener('orientationchange', () => {
