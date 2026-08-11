@@ -51,7 +51,7 @@
 }
 
 .display-bar__freq {
-  flex: 0 0 auto;
+  flex: 0 0 33.333%;
   display: flex;
   flex-direction: column;
   align-items: center;

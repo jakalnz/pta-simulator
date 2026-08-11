@@ -9,6 +9,7 @@ import { createTimer } from './timer.js';
 import { wireKeyboardShortcuts } from './keyboard-shortcuts.js';
 import { initFullscreenLandscape, initRotateHint } from './fullscreen.js';
 import { parseWildingLink } from './wilding-import.js';
+import { initGutterDrawer } from './gutter-drawer.js';
 
 initFullscreenLandscape();
 initRotateHint();
@@ -113,8 +114,12 @@ const patientInfo = {
 };
 
 window.addEventListener('resize', () => ui.refreshChart());
+window.addEventListener('orientationchange', () => ui.refreshChart());
 
-const timer = createTimer(document.getElementById('timer-display'));
+const timerDisplayEl = document.getElementById('timer-display');
+initGutterDrawer({ timerDisplay: timerDisplayEl });
+
+const timer = createTimer(timerDisplayEl);
 let timerStarted = false;
 function startTimerOnce() {
   if (!timerStarted) {

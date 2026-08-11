@@ -87,7 +87,7 @@
   height: 320px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 720px) and (orientation: portrait) {
   .app {
     display: flex;
     flex-direction: column;
@@ -112,6 +112,123 @@
 
   .chart-view.split {
     flex-direction: column;
+  }
+}
+
+/* Mobile landscape: keep the 3-column HUD, scale it to fit the short
+   viewport with clamp() instead of reflowing to a stack, and move
+   secondary controls into the gutter drawer (see js/gutter-drawer.js). */
+.gutter-drawer {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .app {
+    grid-template-columns: clamp(150px, 22vw, 220px) 1fr clamp(120px, 18vw, 180px);
+    gap: clamp(4px, 1vw, 10px);
+    padding: clamp(4px, 1vh, 10px);
+    min-height: 100svh;
+    padding-bottom: calc(clamp(4px, 1vh, 10px) + var(--gutter-tab-height));
+  }
+
+  .display-bar__stimulus,
+  .display-bar__masking {
+    padding: clamp(2px, 0.6vh, 6px) 10px;
+  }
+
+  .display-bar__freq {
+    padding: clamp(2px, 0.6vh, 6px) 12px;
+    font-size: clamp(0.85rem, 2.4vh, 1.4rem);
+    min-width: 0;
+  }
+
+  .display-bar__level {
+    font-size: clamp(0.9rem, 2.6vh, 1.6rem);
+  }
+
+  .quick-select,
+  .mask-panel {
+    row-gap: clamp(4px, 1vh, 10px);
+    font-size: clamp(0.7rem, 1.8vh, 0.9rem);
+  }
+
+  .present-btn,
+  .updown-group button,
+  .toggle-group button,
+  #no-response-btn,
+  #store-btn {
+    min-height: 40px;
+    padding: clamp(2px, 0.8vh, 8px) clamp(6px, 1.5vw, 14px);
+  }
+
+  .chart-panel {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .audiogram-canvas-wrap canvas {
+    height: clamp(280px, 78vh, 420px);
+  }
+
+  .chart-view.split .audiogram-canvas-wrap canvas {
+    height: clamp(280px, 60vh, 320px);
+  }
+
+  .chart-panel > .row:first-child,
+  .chart-panel > .legend-details,
+  .chart-panel > .visual-details {
+    display: none;
+  }
+
+  .gutter-drawer {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    transform: translateY(calc(100% - var(--gutter-tab-height)));
+    transition: transform 200ms ease;
+  }
+
+  .gutter-drawer.is-open {
+    transform: translateY(0);
+  }
+
+  .gutter-drawer__tab {
+    width: 100%;
+    height: var(--gutter-tab-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--color-accent);
+    color: #fff;
+    border: none;
+    border-top-left-radius: var(--radius);
+    border-top-right-radius: var(--radius);
+    touch-action: manipulation;
+    font-size: 0.85rem;
+  }
+
+  .gutter-drawer__tab-icon {
+    transition: transform 200ms ease;
+  }
+
+  .gutter-drawer.is-open .gutter-drawer__tab-icon {
+    transform: rotate(180deg);
+  }
+
+  .gutter-drawer__panel {
+    max-height: min(300px, 60vh);
+    overflow-y: auto;
+    background: var(--color-panel);
+    border-top: 1px solid var(--color-border);
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
   }
 }
 
