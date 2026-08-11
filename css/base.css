@@ -26,6 +26,12 @@ html, body {
 button {
   font: inherit;
   cursor: pointer;
+  /* Long-pressing a button (e.g. holding Present to sustain a tone) would
+     otherwise trigger the browser's text-selection/callout menu on mobile. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 h1, h2, h3 {
