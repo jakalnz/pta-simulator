@@ -7,12 +7,13 @@ import { buildShareUrl, readShareUrl, applyShareData } from './share-link.js';
 import { exportPdf } from './pdf-export.js';
 import { createTimer } from './timer.js';
 import { wireKeyboardShortcuts } from './keyboard-shortcuts.js';
-import { initFullscreenLandscape, initRotateHint } from './fullscreen.js';
+import { initFullscreenLandscape, initRotateHint, initFullscreenButton } from './fullscreen.js';
 import { parseWildingLink } from './wilding-import.js';
 import { initGutterDrawer } from './gutter-drawer.js';
 
 initFullscreenLandscape();
 initRotateHint();
+initFullscreenButton();
 
 const patientModel = createPatientModel();
 const engine = createAudiometerEngine(patientModel);

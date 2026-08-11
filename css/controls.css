@@ -380,6 +380,21 @@
   flex-wrap: wrap;
 }
 
+/* Fullscreen is only meaningful on touch devices here — desktop browsers
+   already have F11, and the Fullscreen/Orientation-lock APIs this button
+   drives are the mobile-only workaround (see js/fullscreen.js). */
+#fullscreen-btn {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  #fullscreen-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 #edit-thresholds-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
