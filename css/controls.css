@@ -257,7 +257,11 @@
   border: 2px solid var(--color-border);
   background: #fff;
   min-height: var(--touch-min);
-  touch-action: manipulation;
+  /* touch-action: manipulation only suppresses double-tap zoom — it still
+     lets the browser treat a sustained hold as a long-press gesture (the
+     text-selection/callout menu). This button is held down for as long as
+     the tone should play, so that gesture must be fully disabled here. */
+  touch-action: none;
   transition: background 0.1s ease, box-shadow 0.1s ease;
 }
 

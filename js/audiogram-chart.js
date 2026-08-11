@@ -173,14 +173,22 @@ function drawX(ctx, x, y, r, doubled) {
  * thresholds are built from separate data columns and never share a line —
  * a masked point at 1000Hz must never be joined to an unmasked point at 2000Hz.
  * No-response points are excluded entirely, breaking the line at that frequency.
+ *
+ * A series can still have gaps at frequencies that were only tested with the
+ * *other* masked status (e.g. unmasked at 1k and 8k, masked-only at 2k-6k).
+ * Drawing straight through those gaps would visually cut across the masked
+ * symbols in between as if they weren't there, so the line breaks wherever
+ * an intervening frequency has AC data recorded under the other status.
  */
 export function drawConnectingLines(ctx, points, width, height) {
   const series = {};
+  const acByEarFreq = {}; // `${ear}|${freqIndex}` -> true, any AC status, for gap detection
   points.forEach((p) => {
     if (p.mode !== 'AC' || p.noResponse) return;
     const key = `${p.ear}|${p.masked}`;
     series[key] = series[key] || { ear: p.ear, pts: [] };
     series[key].pts.push(p);
+    acByEarFreq[`${p.ear}|${FREQUENCIES.indexOf(p.freq)}`] = true;
   });
 
   Object.values(series).forEach(({ ear, pts }) => {
@@ -190,11 +198,23 @@ export function drawConnectingLines(ctx, points, width, height) {
     ctx.strokeStyle = COLORS[ear];
     ctx.lineWidth = 1.5;
     ctx.beginPath();
+    let prevFreqIndex = null;
     sorted.forEach((p, i) => {
       const x = freqToX(p.freq, width);
       const y = levelToY(p.level, height);
-      if (i === 0) ctx.moveTo(x, y);
+      const freqIndex = FREQUENCIES.indexOf(p.freq);
+      let hasGapData = false;
+      if (prevFreqIndex !== null) {
+        for (let fi = prevFreqIndex + 1; fi < freqIndex; fi += 1) {
+          if (acByEarFreq[`${ear}|${fi}`]) {
+            hasGapData = true;
+            break;
+          }
+        }
+      }
+      if (i === 0 || hasGapData) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
+      prevFreqIndex = freqIndex;
     });
     ctx.stroke();
     ctx.restore();

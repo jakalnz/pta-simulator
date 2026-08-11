@@ -215,10 +215,14 @@ export function wireUi({ engine, patientModel, dom }) {
     engine.storeThreshold(false);
     refreshChart();
   });
-  dom.presentBtn.addEventListener('pointerdown', startPresenting);
+  // preventDefault on pointerdown stops touch browsers (Edge/Chrome mobile)
+  // from treating the sustained hold as a long-press gesture, which would
+  // otherwise pop up their text-selection/callout menu mid-presentation.
+  dom.presentBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); startPresenting(); });
   dom.presentBtn.addEventListener('pointerup', stopPresenting);
   dom.presentBtn.addEventListener('pointerleave', stopPresenting);
   dom.presentBtn.addEventListener('pointercancel', stopPresenting);
+  dom.presentBtn.addEventListener('contextmenu', (e) => e.preventDefault());
   dom.soundSwitch.addEventListener('click', () => {
     soundOn = !soundOn;
     dom.soundSwitch.textContent = soundOn ? 'Tone: On' : 'Tone: Off';
