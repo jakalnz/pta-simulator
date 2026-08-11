@@ -32,6 +32,7 @@ const dom = {
   earButtons: Array.from(document.querySelectorAll('[data-ear]')),
   modeButtons: Array.from(document.querySelectorAll('[data-mode]')),
   transducerButtons: Array.from(document.querySelectorAll('.transducer-toggle button')),
+  transducerSwitch: document.getElementById('transducer-switch'),
   maskOnBtn: document.getElementById('mask-on-btn'),
   maskOffBtn: document.getElementById('mask-off-btn'),
   maskingRequiredFlag: document.getElementById('masking-required-flag'),

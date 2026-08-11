@@ -156,6 +156,11 @@
       <button data-transducer="headphone">Headphone</button>
       <button data-transducer="insertphone">Insert</button>
     </div>
+    <button id="transducer-switch" class="switch-btn transducer-switch" type="button" style="grid-row: r1;" aria-pressed="false">Headphone</button>
+
+    <div class="row masking-hint-row" style="grid-row: r2;">
+      <span class="masking-required" id="masking-required-flag">MASKING REQUIRED</span>
+    </div>
 
     <div class="row updown-row" style="grid-row: r4;">
       <div class="updown-col">
@@ -173,7 +178,6 @@
         <button id="mask-on-btn" data-masking="on">On</button>
         <button id="mask-off-btn" data-masking="off">Off</button>
       </div>
-      <span class="masking-required" id="masking-required-flag">MASKING REQUIRED</span>
     </div>
 
     <div class="hints-status" id="hints-status-flag" style="grid-row: r8;">Hints: ON</div>

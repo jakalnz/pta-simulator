@@ -275,6 +275,18 @@
   visibility: visible;
 }
 
+.masking-hint-row {
+  justify-content: center;
+  text-align: center;
+}
+
+/* Single-button mobile stand-in for .transducer-toggle (see its @media
+   override below) — the two-button pill doesn't fit the narrow mask-panel
+   column on small screens without clipping "Insert". */
+.transducer-switch {
+  display: none;
+}
+
 .hints-status,
 .sound-status {
   font-size: 0.75rem;
@@ -458,7 +470,30 @@
     font-size: 0.9rem;
   }
 
+  /* The two-button pill can't fit "Headphone"/"Insert" side by side in the
+     narrow mask-panel column here — swap it for a single toggle button
+     showing just the active transducer (same pattern as Sound/Direction). */
   .transducer-toggle {
-    margin-top: 0;
+    display: none;
+  }
+
+  .transducer-switch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: clamp(1px, 0.5vh, 6px) clamp(6px, 1.5vw, 10px);
+    font-size: 0.8rem;
+  }
+
+  /* Quick-select and mask-panel are independent flex columns at this
+     breakpoint (see css/layout.css), so there's no shared grid row to pin
+     the masking controls to Level/Present's height like on desktop. This
+     row stands in for quick-select's Mode+Freq rows so masking updown/
+     on-off land at roughly the same height as Level/Present — and gives
+     the masking-required hint a real spot instead of empty space. */
+  .masking-hint-row {
+    min-height: clamp(60px, 23vh, 100px);
+    align-items: center;
   }
 }

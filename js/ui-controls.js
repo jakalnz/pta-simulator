@@ -67,6 +67,8 @@ export function wireUi({ engine, patientModel, dom }) {
     dom.earButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.ear === s.testEar)));
     dom.modeButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.mode === s.testMode)));
     dom.transducerButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.transducer === s.transducer)));
+    dom.transducerSwitch.textContent = transducerLabel;
+    dom.transducerSwitch.setAttribute('aria-pressed', String(s.transducer === 'insertphone'));
     dom.maskOnBtn.setAttribute('aria-pressed', String(s.maskingOn));
     dom.maskOffBtn.setAttribute('aria-pressed', String(!s.maskingOn));
 
@@ -183,6 +185,11 @@ export function wireUi({ engine, patientModel, dom }) {
   dom.earButtons.forEach((btn) => btn.addEventListener('click', () => { clearResponseLight(); engine.setTestEar(btn.dataset.ear); }));
   dom.modeButtons.forEach((btn) => btn.addEventListener('click', () => { clearResponseLight(); engine.setTestMode(btn.dataset.mode); }));
   dom.transducerButtons.forEach((btn) => btn.addEventListener('click', () => { clearResponseLight(); engine.setTransducer(btn.dataset.transducer); }));
+  dom.transducerSwitch.addEventListener('click', () => {
+    clearResponseLight();
+    const next = engine.getState().transducer === 'insertphone' ? 'headphone' : 'insertphone';
+    engine.setTransducer(next);
+  });
   dom.directionSwitch.addEventListener('click', () => {
     const next = engine.getState().toggleDirection === 'up-louder' ? 'up-quieter' : 'up-louder';
     engine.setToggleDirection(next);
