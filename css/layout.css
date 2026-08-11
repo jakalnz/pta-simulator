@@ -213,10 +213,13 @@
     height: clamp(280px, 60vh, 320px);
   }
 
-  .chart-panel > .row:first-child,
-  .chart-panel > .legend-details,
-  .chart-panel > .visual-details {
+  .chart-panel > .row:first-child {
     display: none;
+  }
+
+  .legend-details,
+  .visual-details {
+    font-size: clamp(0.65rem, 1.6vh, 0.85rem);
   }
 
   .gutter-drawer {

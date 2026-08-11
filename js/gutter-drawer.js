@@ -1,8 +1,10 @@
 // Bottom-anchored drawer for mobile landscape: relocates secondary controls
-// (footer, legend/visual details, chart view toggle) out of the always-visible
-// HUD when the game-like landscape layout is active (see the matching media
-// query in css/layout.css), and restores them to their original position
-// when it isn't.
+// (footer, chart view toggle) out of the always-visible HUD when the
+// game-like landscape layout is active (see the matching media query in
+// css/layout.css), and restores them to their original position when it
+// isn't. The Symbol Key / Visual Cochlea Levels details stay put in the
+// chart panel (below Store/No Response) — that panel scrolls independently
+// of the drawer, so they don't need to be tucked away.
 const LANDSCAPE_QUERY = '(orientation: landscape) and (max-height: 500px)';
 
 export function initGutterDrawer({ timerDisplay }) {
@@ -15,8 +17,6 @@ export function initGutterDrawer({ timerDisplay }) {
   const relocated = [
     { el: document.querySelector('.app-footer'), parent: null, next: null },
     { el: document.querySelector('.chart-panel > .row:first-child'), parent: null, next: null },
-    { el: document.querySelector('.legend-details'), parent: null, next: null },
-    { el: document.querySelector('.visual-details'), parent: null, next: null },
   ].filter((item) => item.el);
 
   relocated.forEach((item) => {
