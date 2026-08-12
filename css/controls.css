@@ -374,7 +374,8 @@
   gap: 8px;
 }
 
-#wilding-import-input {
+#wilding-import-input,
+#case-library-input {
   flex: 1 1 auto;
   min-width: 0;
   padding: 6px 8px;

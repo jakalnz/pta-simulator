@@ -10,6 +10,8 @@ import { wireKeyboardShortcuts } from './keyboard-shortcuts.js';
 import { initFullscreenLandscape, initRotateHint, initFullscreenButton } from './fullscreen.js';
 import { parseWildingLink } from './wilding-import.js';
 import { initGutterDrawer } from './gutter-drawer.js';
+import { resolveLibraryUrl, loadCaseFromUrl, saveLibraryConfig, loadLibraryConfig } from './case-library.js';
+import { applySession } from './session-serializer.js';
 
 initFullscreenLandscape();
 initRotateHint();
@@ -75,14 +77,60 @@ const dom = {
   },
 };
 
+const builtInPresetsGroup = document.createElement('optgroup');
+builtInPresetsGroup.label = 'Built-in Presets';
 Object.entries(PRESETS).forEach(([key, preset]) => {
   const opt = document.createElement('option');
   opt.value = key;
   opt.textContent = preset.label;
-  dom.presetSelect.appendChild(opt);
+  builtInPresetsGroup.appendChild(opt);
 });
-dom.presetSelect.addEventListener('change', () => {
-  patientModel.loadPreset(dom.presetSelect.value);
+dom.presetSelect.appendChild(builtInPresetsGroup);
+
+// Class Case Library: a supervisor-published set of cases (see
+// js/case-library.js), listed as a second optgroup and applied via the
+// full session schema (patient + storedPoints + locked) rather than
+// patientModel.loadPreset(), which only sets physiology.
+let libraryOptgroup = null;
+let libraryCasesByValue = new Map();
+
+function rebuildLibraryOptgroup(library) {
+  if (libraryOptgroup) libraryOptgroup.remove();
+  libraryCasesByValue = new Map();
+  if (!library || !library.cases || library.cases.length === 0) return;
+  libraryOptgroup = document.createElement('optgroup');
+  libraryOptgroup.label = library.label || 'Class Cases';
+  library.cases.forEach((c, i) => {
+    const value = `lib:${i}`;
+    libraryCasesByValue.set(value, c);
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = c.label;
+    libraryOptgroup.appendChild(opt);
+  });
+  dom.presetSelect.appendChild(libraryOptgroup);
+}
+
+dom.presetSelect.addEventListener('change', async () => {
+  const value = dom.presetSelect.value;
+  const libraryCase = libraryCasesByValue.get(value);
+  if (libraryCase) {
+    caseLibraryStatus.textContent = `Loading "${libraryCase.label}"…`;
+    caseLibraryStatus.classList.remove('error');
+    try {
+      const data = await loadCaseFromUrl(libraryCase.url);
+      applySession(data, { patientModel, engine });
+      ui.refreshChart();
+      editor.render();
+      applyLockState(data.locked);
+      caseLibraryStatus.textContent = `Loaded "${libraryCase.label}".`;
+    } catch (err) {
+      caseLibraryStatus.textContent = err.message;
+      caseLibraryStatus.classList.add('error');
+    }
+    return;
+  }
+  patientModel.loadPreset(value);
   engine.clearStoredPoints();
 });
 
@@ -240,6 +288,45 @@ document.getElementById('wilding-import-btn').addEventListener('click', () => {
     : 'Imported.';
   input.value = '';
 });
+
+const caseLibraryStatus = document.getElementById('case-library-status');
+const caseLibraryInput = document.getElementById('case-library-input');
+
+async function loadCaseLibrary(url, { silent } = {}) {
+  if (!silent) {
+    caseLibraryStatus.textContent = 'Loading library…';
+    caseLibraryStatus.classList.remove('error');
+  }
+  try {
+    const library = await resolveLibraryUrl(url);
+    rebuildLibraryOptgroup(library);
+    saveLibraryConfig(url, library);
+    if (!silent) caseLibraryStatus.textContent = `Loaded ${library.cases.length} case(s) from "${library.label}".`;
+  } catch (err) {
+    // A silent background refresh failing just means the cached copy from
+    // a previous visit (already shown) stays as-is — not worth alarming a
+    // student over a transient network hiccup.
+    if (!silent) {
+      caseLibraryStatus.textContent = err.message;
+      caseLibraryStatus.classList.add('error');
+    }
+  }
+}
+
+document.getElementById('case-library-load-btn').addEventListener('click', () => {
+  const url = caseLibraryInput.value;
+  loadCaseLibrary(url);
+});
+
+// Restore a previously-configured library immediately from localStorage
+// (works offline / before the network round-trip completes), then quietly
+// refresh in the background in case the supervisor has added cases since.
+const cachedLibraryConfig = loadLibraryConfig();
+if (cachedLibraryConfig && cachedLibraryConfig.sourceUrl) {
+  caseLibraryInput.value = cachedLibraryConfig.sourceUrl;
+  rebuildLibraryOptgroup(cachedLibraryConfig.library);
+  loadCaseLibrary(cachedLibraryConfig.sourceUrl, { silent: true });
+}
 
 const sharedData = readShareUrl();
 if (sharedData) {
