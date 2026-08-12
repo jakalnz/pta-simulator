@@ -10,3 +10,31 @@ Use the images in the folder /Example Images as a design guide
 Include a Duration Timer
 Allow Save to PDF with Audiogram
 The Headphone Insert phone should be a toggle contained within the AC/BC masking select tool
+
+## Class Case Library
+
+Supervisors can publish a set of cases for students to load from the Preset dropdown (Share dialog → "Class Case Library"), via `js/case-library.js`. Two discovery modes, both client-side with no backend or API key:
+
+**Manifest URL** (recommended) — a `manifest.json` hosted anywhere with CORS-permissive access (GitHub raw, a Gist, GitHub Pages, a Drive-hosted file fetched via `https://drive.google.com/uc?export=download&id=<FILE_ID>`, etc.):
+
+```json
+{
+  "label": "ENT 301 - Week 4 Cases",
+  "cases": [
+    { "label": "Case 1 - Conductive", "url": "https://.../case1.json" },
+    { "label": "Case 2 - Mixed, exam", "url": "https://.../case2.json" }
+  ]
+}
+```
+
+- `label` (manifest, top-level) — optgroup heading in the Preset dropdown. Optional, defaults to "Class Cases".
+- `cases[].label` — the option text shown to students.
+- `cases[].url` — an **absolute** URL to a case file produced by the app's own "Export JSON" button (Share dialog). Relative URLs are not supported since they'd resolve against the app's own location, not the manifest's.
+
+Each case file must be the app's native session schema (`js/session-serializer.js`, `schemaVersion: 2`): `patientInfo`, `transducer`, `toggleDirection`, `patient` (full physiological model — `cochlear`, `ipsiConductive`, `ascDescDiff`, `psychWidth` per ear, plus `crossIAA.headphone`/`crossIAA.insertphone`, all keyed by frequency), `storedPoints`, `durationSeconds`, `locked`. Don't hand-author these — export them from the app (tick Exam Mode first for a locked/answer-key-hidden case) so the schema stays correct and in sync with the model.
+
+**OneDrive shared folder** — paste a personal OneDrive "Anyone with the link" folder share link instead of a manifest URL (detected by URL shape: `1drv.ms` / `onedrive.live.com` / `sharepoint.com`). The app lists it anonymously via OneDrive's public shares API and derives each case's label from its filename (`.json` stripped) — every `.json` file directly in that folder should be an Export JSON case file. No API key or account setup beyond sharing the folder.
+
+**Google Drive folder auto-listing is intentionally not supported** — Drive has no anonymous folder-listing endpoint (unlike OneDrive), so it would require every supervisor to create and maintain their own Google API key. Use a Drive-hosted `manifest.json` (fetched via the `uc?export=download` link above) instead.
+
+The configured library URL and last-fetched case list persist in the browser's `localStorage`, so they reappear immediately on reload before any network round-trip, with a silent background refresh on load in case the supervisor has added cases since.
