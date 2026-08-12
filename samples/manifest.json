@@ -1,0 +1,7 @@
+{
+  "label": "Sample Class Cases",
+  "cases": [
+    { "label": "Case 1 - Conductive Loss", "url": "https://jakalnz.github.io/pta-simulator/samples/case1-conductive.json" },
+    { "label": "Case 2 - Sensorineural Loss (Exam)", "url": "https://jakalnz.github.io/pta-simulator/samples/case2-sensorineural-exam.json" }
+  ]
+}
