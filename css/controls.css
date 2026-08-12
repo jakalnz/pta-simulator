@@ -16,9 +16,18 @@
 .display-bar__stimulus,
 .display-bar__masking {
   flex: 1;
+  position: relative;
   padding: 10px 16px;
   color: #fff;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, filter 0.1s ease;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.display-bar__stimulus:active,
+.display-bar__masking:active {
+  filter: brightness(1.15);
 }
 
 .display-bar__stimulus {
@@ -27,6 +36,31 @@
 
 .display-bar__masking {
   text-align: right;
+}
+
+/* Press-to-Store (left/channel 1) and press-to-No-Response (right/channel 2)
+   on the header panels — mainly so mobile users don't have to scroll down
+   to the chart panel's Store/No Response buttons every trial. Hidden by
+   default; a faint hint label surfaces on mobile (see @media override in
+   css/layout.css) since the affordance isn't otherwise discoverable. */
+.channel-action-hint {
+  display: none;
+  position: absolute;
+  top: 2px;
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.display-bar__stimulus .channel-action-hint {
+  right: 10px;
+}
+
+.display-bar__masking .channel-action-hint {
+  left: 10px;
 }
 
 /* Channel colour follows which ear is under test: test ear = red channel, other ear = blue. */
@@ -495,5 +529,13 @@
   .masking-hint-row {
     min-height: clamp(60px, 23vh, 100px);
     align-items: center;
+  }
+
+  /* Surface the hidden press-to-Store / press-to-No-Response affordance on
+     the header panels here — without it, scrolling down to the chart
+     panel's buttons every trial is the main mobile pain point this is
+     meant to avoid. */
+  .channel-action-hint {
+    display: block;
   }
 }

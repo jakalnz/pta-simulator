@@ -23,16 +23,18 @@
 <div class="app">
 
   <div class="display-bar">
-    <div class="display-bar__stimulus">
+    <div class="display-bar__stimulus" id="stimulus-store-btn" role="button" tabindex="0" aria-label="Store threshold">
       <div class="display-bar__level" id="stimulus-level">40 dB</div>
       <div class="display-bar__label" id="stimulus-label">Stimulus Tone - AC Transducer - Right</div>
+      <span class="channel-action-hint" aria-hidden="true">Store</span>
     </div>
     <div class="display-bar__freq" id="freq-panel">
       <span id="freq-readout">1000 Hz</span>
     </div>
-    <div class="display-bar__masking">
+    <div class="display-bar__masking" id="masking-no-response-btn" role="button" tabindex="0" aria-label="Mark no response">
       <div class="display-bar__level" id="masking-level">[ 0 dB ]</div>
       <div class="display-bar__label" id="masking-label">NBN - AC Transducer - Left Masking</div>
+      <span class="channel-action-hint" aria-hidden="true">No Response</span>
     </div>
   </div>
 

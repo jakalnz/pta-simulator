@@ -216,15 +216,34 @@ export function wireUi({ engine, patientModel, dom }) {
   // No-response and Store are both clinician decisions made after one or more
   // presentations, not automatic consequences of the simulated patient's last
   // response — the clinician judges, then records, at the current dial settings.
-  dom.noResponseBtn.addEventListener('click', () => {
+  function markNoResponse() {
     engine.storeThreshold(true);
     clearResponseLight();
     refreshChart();
-  });
-  dom.storeBtn.addEventListener('click', () => {
+  }
+  function storeThreshold() {
     engine.storeThreshold(false);
     refreshChart();
-  });
+  }
+  dom.noResponseBtn.addEventListener('click', markNoResponse);
+  dom.storeBtn.addEventListener('click', storeThreshold);
+
+  // Hidden press-to-Store / press-to-No-Response on the header panels (see
+  // css/controls.css .channel-action-hint) — mainly so mobile users don't
+  // have to scroll down to these same actions at the bottom of the chart
+  // panel on every trial. Works everywhere, but the hint label that makes
+  // it discoverable only shows at the mobile-landscape breakpoint.
+  function onActivate(el, handler) {
+    el.addEventListener('click', handler);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handler();
+      }
+    });
+  }
+  onActivate(dom.stimulusPanel, storeThreshold);
+  onActivate(dom.maskingPanel, markNoResponse);
   // preventDefault on pointerdown stops touch browsers (Edge/Chrome mobile)
   // from treating the sustained hold as a long-press gesture, which would
   // otherwise pop up their text-selection/callout menu mid-presentation.
