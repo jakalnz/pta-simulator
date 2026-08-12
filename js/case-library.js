@@ -1,10 +1,16 @@
 // Supervisor-hosted case discovery for the Preset dropdown. Two sources,
 // both client-side/no-backend:
 // - a manifest.json {label, cases:[{label,url}]} hosted anywhere with CORS
+//   (the recommended, reliable path — see CLAUDE.md)
 // - a OneDrive "Anyone with the link" shared folder, listed anonymously via
-//   the public shares API (no API key — unlike Google Drive, which has no
-//   anonymous folder-listing endpoint, so it isn't supported here; a
-//   Drive-hosted manifest.json works fine via the manifest path instead).
+//   the legacy public shares API. KNOWN BROKEN as of 2026-08 for personal
+//   OneDrive accounts Microsoft has migrated to SharePoint-backed storage
+//   (now most of them) — that API returns 401 even for genuinely public
+//   folders, and the modern Graph API replacement requires an OAuth token
+//   for every request, anonymous or not, so there's no drop-in fix. Left in
+//   place (harmless for the shrinking pool of non-migrated accounts) but
+//   the error message below steers people at the manifest path instead of
+//   leaving them stuck on a cryptic 401. See CLAUDE.md for the full story.
 import { deserializeSession } from './session-serializer.js';
 
 const STORAGE_KEY = 'pta-case-library';
@@ -21,7 +27,17 @@ function encodeOneDriveShareUrl(url) {
 async function resolveOneDriveFolder(shareUrl) {
   const apiUrl = `https://api.onedrive.com/v1.0/shares/${encodeOneDriveShareUrl(shareUrl)}/root?expand=children`;
   const res = await fetch(apiUrl);
-  if (!res.ok) throw new Error(`OneDrive folder request failed (${res.status}). Make sure it's shared as "Anyone with the link".`);
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error(
+        'OneDrive rejected this (401), even if the folder is genuinely shared as "Anyone with the link". '
+        + 'This affects most personal OneDrive accounts now — Microsoft has broken anonymous folder listing '
+        + 'for accounts migrated to SharePoint-backed storage, and there is no fix on your end. '
+        + 'Use a manifest.json link instead (see the Class Case Library guide).',
+      );
+    }
+    throw new Error(`OneDrive folder request failed (${res.status}). Make sure it's shared as "Anyone with the link".`);
+  }
   const data = await res.json();
   const children = Array.isArray(data.children) ? data.children : [];
   const cases = children

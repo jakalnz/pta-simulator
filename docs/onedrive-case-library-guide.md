@@ -1,6 +1,31 @@
 # Publishing class cases via a shared OneDrive folder
 
-This is the recommended setup if you (a supervisor) want to build up a shared
+> **⚠ Currently broken for most accounts — do not use this.** Testing
+> against a real "Anyone with the link, view" OneDrive folder on 2026-08-12
+> confirmed this mode fails with a `401` error even when the folder is
+> genuinely shared correctly. The cause is on Microsoft's end (see below),
+> not a setup mistake, and there is no fix available from the sharing UI.
+> **Use [the manifest.json guide](manifest-case-library-guide.md) instead**
+> — it works reliably today and takes about the same setup effort.
+>
+> Why: this mode relies on OneDrive's legacy anonymous "shares" API
+> (`api.onedrive.com/v1.0/shares/...`), which now rejects requests for any
+> personal OneDrive account Microsoft has migrated to SharePoint-backed
+> storage — which is most personal OneDrive accounts at this point. The
+> folder itself still loads fine anonymously in a plain browser; only this
+> specific API call is broken. The modern replacement (Microsoft Graph's
+> `/shares` endpoint) requires an OAuth access token for *every* request,
+> anonymous or not, so there's no equivalent anonymous call to switch to.
+> This is documented in `CLAUDE.md` and `js/case-library.js`, and the app's
+> own error message points here if you try it anyway.
+
+The rest of this page is kept for reference (it may still work for an
+un-migrated account, and documents the underlying mechanism), but **plan
+around the manifest.json approach**, not this one.
+
+---
+
+This was the intended setup if you (a supervisor) want to build up a shared
 library of cases with colleagues, and have every student's PTA Simulator
 auto-discover them from the Preset dropdown — no emailing files around, no
 manifest.json to hand-maintain.
@@ -94,9 +119,13 @@ Share dialog.
 
 ## Troubleshooting
 
-- **"OneDrive folder request failed (4xx)"** — the folder's public link
-  permission most likely isn't set to "Anyone with the link can view" (see
-  step 3), or the link was later changed/revoked.
+- **"OneDrive rejected this (401)..."** — this is the known-broken case
+  described at the top of this page. It is not a permissions problem; switch
+  to [the manifest.json guide](manifest-case-library-guide.md).
+- **"OneDrive folder request failed (4xx)"** (a *different* status than 401)
+  — the folder's public link permission most likely isn't set to "Anyone
+  with the link can view" (see step 3), or the link was later
+  changed/revoked.
 - **"No .json case files found in that OneDrive folder"** — check that the
   case files are directly in the folder (not a subfolder) and actually have
   a `.json` extension.
