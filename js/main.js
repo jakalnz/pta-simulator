@@ -111,8 +111,36 @@ function rebuildLibraryOptgroup(library) {
   dom.presetSelect.appendChild(libraryOptgroup);
 }
 
+// A JSON import, share link, or Wilding import loads a patient that isn't
+// any of the dropdown's own options — leaving the Preset field showing
+// whatever built-in preset was last selected would be actively misleading
+// about which patient is actually active. Instead we inject a one-off
+// option carrying the loaded case's own name (or a generic fallback when
+// none is available, e.g. Wilding links don't carry a patient name) and
+// select it; it's removed again the moment the user picks a real preset
+// or library case, so it never lingers as a dead entry in the list.
+let loadedCaseOption = null;
+
+function setActiveLoadedCase(label) {
+  if (!loadedCaseOption) {
+    loadedCaseOption = document.createElement('option');
+    loadedCaseOption.value = 'loaded';
+    dom.presetSelect.prepend(loadedCaseOption);
+  }
+  loadedCaseOption.textContent = label;
+  dom.presetSelect.value = 'loaded';
+}
+
+function clearActiveLoadedCase() {
+  if (loadedCaseOption) {
+    loadedCaseOption.remove();
+    loadedCaseOption = null;
+  }
+}
+
 dom.presetSelect.addEventListener('change', async () => {
   const value = dom.presetSelect.value;
+  clearActiveLoadedCase();
   const libraryCase = libraryCasesByValue.get(value);
   if (libraryCase) {
     caseLibraryStatus.textContent = `Loading "${libraryCase.label}"…`;
@@ -240,6 +268,11 @@ document.getElementById('import-json-input').addEventListener('change', async (e
   const file = e.target.files[0];
   if (!file) return;
   const data = await importJson(file, { patientModel, engine });
+  const importedName = data.patientInfo?.name?.trim();
+  patientInfo.name.value = importedName ?? '';
+  patientInfo.id.value = data.patientInfo?.id ?? '';
+  patientInfo.dob.value = data.patientInfo?.dob ?? '';
+  setActiveLoadedCase(importedName || 'Imported case');
   editor.render();
   ui.refreshChart();
   applyLockState(data.locked);
@@ -279,6 +312,9 @@ document.getElementById('wilding-import-btn').addEventListener('click', () => {
 
   patientModel.loadPatient(result.patient);
   engine.clearStoredPoints();
+  // The Wilding link format doesn't carry a patient name, unlike our own
+  // JSON schema, so there's nothing more specific to show here.
+  setActiveLoadedCase('Imported (Wilding)');
   ui.refreshChart();
   editor.render();
   applyLockState(locked);
@@ -331,11 +367,13 @@ if (cachedLibraryConfig && cachedLibraryConfig.sourceUrl) {
 const sharedData = readShareUrl();
 if (sharedData) {
   applyShareData(sharedData, { patientModel, engine });
+  const sharedName = sharedData.patientInfo?.name?.trim();
   if (sharedData.patientInfo) {
-    patientInfo.name.value = sharedData.patientInfo.name ?? '';
+    patientInfo.name.value = sharedName ?? '';
     patientInfo.id.value = sharedData.patientInfo.id ?? '';
     patientInfo.dob.value = sharedData.patientInfo.dob ?? '';
   }
+  setActiveLoadedCase(sharedName || 'Shared case');
   ui.refreshChart();
   applyLockState(sharedData.locked);
 }
