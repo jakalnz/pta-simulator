@@ -225,8 +225,14 @@ export function wireUi({ engine, patientModel, dom }) {
     engine.storeThreshold(false);
     refreshChart();
   }
+  function deletePoint() {
+    engine.deleteStoredPoint();
+    clearResponseLight();
+    refreshChart();
+  }
   dom.noResponseBtn.addEventListener('click', markNoResponse);
   dom.storeBtn.addEventListener('click', storeThreshold);
+  dom.deletePointBtn?.addEventListener('click', deletePoint);
 
   // Hidden press-to-Store / press-to-No-Response on the header panels (see
   // css/controls.css .channel-action-hint) — mainly so mobile users don't

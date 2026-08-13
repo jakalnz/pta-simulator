@@ -48,6 +48,7 @@ const dom = {
   maskDownBtn: document.getElementById('mask-down'),
   noResponseBtn: document.getElementById('no-response-btn'),
   storeBtn: document.getElementById('store-btn'),
+  deletePointBtn: document.getElementById('delete-point-btn'),
   presentBtn: document.getElementById('present-btn'),
   canvasRight: document.getElementById('audiogram-canvas-right'),
   canvasLeft: document.getElementById('audiogram-canvas-left'),
@@ -383,6 +384,10 @@ wireKeyboardShortcuts({
   onStore: () => {
     startTimerOnce();
     engine.storeThreshold();
+    ui.refreshChart();
+  },
+  onDelete: () => {
+    engine.deleteStoredPoint();
     ui.refreshChart();
   },
   onLevelChange: startTimerOnce,

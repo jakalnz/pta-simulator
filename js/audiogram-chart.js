@@ -174,14 +174,26 @@ function drawX(ctx, x, y, r, doubled) {
  * - If a frequency has both a masked and an unmasked threshold, the masked
  *   one supersedes the unmasked one for line-drawing purposes (both symbols
  *   still get drawn — this only decides which one the line passes through).
- * - No-response is not a threshold and is excluded, breaking the line there.
+ * - A masked no-response also supersedes any unmasked threshold at that
+ *   frequency (it's the clinically valid result), but unlike a normal
+ *   threshold it is never itself connected — the line breaks there instead
+ *   of bridging through it. Plain untested gaps (no point of any kind at a
+ *   frequency) are still bridged, same as the source simulator.
  * - BC thresholds are never connected.
  */
 export function drawConnectingLines(ctx, points, width, height) {
+  const hardBreaks = { right: new Set(), left: new Set() };
+  points.forEach((p) => {
+    if (p.mode === 'AC' && p.masked && p.noResponse) {
+      hardBreaks[p.ear].add(FREQUENCIES.indexOf(p.freq));
+    }
+  });
+
   const byEar = { right: new Map(), left: new Map() };
   points.forEach((p) => {
     if (p.mode !== 'AC' || p.noResponse) return;
     const freqIndex = FREQUENCIES.indexOf(p.freq);
+    if (hardBreaks[p.ear].has(freqIndex)) return;
     const map = byEar[p.ear];
     const existing = map.get(freqIndex);
     if (!existing || (p.masked && !existing.masked)) {
@@ -190,16 +202,19 @@ export function drawConnectingLines(ctx, points, width, height) {
   });
 
   Object.entries(byEar).forEach(([ear, map]) => {
-    const sorted = [...map.entries()].sort((a, b) => a[0] - b[0]).map(([, p]) => p);
+    const sorted = [...map.entries()].sort((a, b) => a[0] - b[0]).map(([idx, p]) => ({ idx, p }));
     if (sorted.length < 2) return;
+    const breaks = hardBreaks[ear];
     ctx.save();
     ctx.strokeStyle = COLORS[ear];
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    sorted.forEach((p, i) => {
+    sorted.forEach(({ idx, p }, i) => {
       const x = freqToX(p.freq, width);
       const y = levelToY(p.level, height);
-      if (i === 0) ctx.moveTo(x, y);
+      const prev = sorted[i - 1];
+      const brokenSincePrev = prev && [...breaks].some((b) => b > prev.idx && b < idx);
+      if (i === 0 || brokenSincePrev) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
     ctx.stroke();

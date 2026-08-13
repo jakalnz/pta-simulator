@@ -1,4 +1,14 @@
-import { FREQUENCIES, clampLevel, OTHER_EAR } from './utils.js';
+import { FREQUENCIES, clampLevel, OTHER_EAR, BC_MAX_LEVEL, DB_MAX } from './utils.js';
+
+// Frequencies outside BC_MAX_LEVEL (6000/8000Hz) aren't offered via BC on
+// real audiometers; there's no dedicated frequency selector to grey them
+// out (frequency is stepped, shared with AC), so fall back to the highest
+// defined BC ceiling rather than DB_MAX so the dial still can't run away.
+const BC_FALLBACK_MAX = Math.max(...Object.values(BC_MAX_LEVEL));
+
+function maxLevelFor(mode, freq) {
+  return mode === 'BC' ? (BC_MAX_LEVEL[freq] ?? BC_FALLBACK_MAX) : DB_MAX;
+}
 import { isMaskingRequired, createPlateauTracker } from './masking-logic.js';
 
 /**
@@ -53,6 +63,7 @@ export function createAudiometerEngine(patientModel) {
 
   function setTestMode(mode) {
     state.testMode = mode;
+    state.presentedLevel = clampLevel(state.presentedLevel, maxLevelFor(mode, state.freq));
     plateau.reset();
     emit();
   }
@@ -72,6 +83,7 @@ export function createAudiometerEngine(patientModel) {
     const idx = FREQUENCIES.indexOf(state.freq);
     const nextIdx = clampIndex(idx + dir, FREQUENCIES.length);
     state.freq = FREQUENCIES[nextIdx];
+    state.presentedLevel = clampLevel(state.presentedLevel, maxLevelFor(state.testMode, state.freq));
     plateau.reset();
     emit();
   }
@@ -83,7 +95,7 @@ export function createAudiometerEngine(patientModel) {
   function adjustPresentedLevel(dir) {
     // dir: +1 = "up" key. toggleDirection decides whether up = louder or quieter.
     const sign = state.toggleDirection === 'up-louder' ? dir : -dir;
-    state.presentedLevel = clampLevel(state.presentedLevel + sign * 5);
+    state.presentedLevel = clampLevel(state.presentedLevel + sign * 5, maxLevelFor(state.testMode, state.freq));
     emit();
   }
 
@@ -222,6 +234,20 @@ export function createAudiometerEngine(patientModel) {
     return [...storedPoints];
   }
 
+  /**
+   * Deletes the stored point matching the *current* dial state (same
+   * identity tuple upsertPoint matches on) — lets a student clear one wrong
+   * entry without wiping the whole test. No-op if nothing matches.
+   */
+  function deleteStoredPoint() {
+    const idx = storedPoints.findIndex((p) => p.ear === state.testEar
+      && p.mode === state.testMode
+      && p.freq === state.freq
+      && p.masked === state.maskingOn);
+    if (idx >= 0) storedPoints.splice(idx, 1);
+    emit();
+  }
+
   function clearStoredPoints() {
     storedPoints.length = 0;
     emit();
@@ -284,6 +310,7 @@ export function createAudiometerEngine(patientModel) {
     presentTone,
     storeThreshold,
     getStoredPoints,
+    deleteStoredPoint,
     clearStoredPoints,
     restoreStoredPoints,
     isPlateauStable,

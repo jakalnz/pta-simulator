@@ -1,4 +1,4 @@
-export function wireKeyboardShortcuts({ engine, onStore, onLevelChange, onPresentStart, onPresentEnd }) {
+export function wireKeyboardShortcuts({ engine, onStore, onDelete, onLevelChange, onPresentStart, onPresentEnd }) {
   function isTextInput(el) {
     return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
   }
@@ -46,6 +46,10 @@ export function wireKeyboardShortcuts({ engine, onStore, onLevelChange, onPresen
       case 's':
       case 'S':
         onStore?.();
+        break;
+      case 'Delete':
+        e.preventDefault();
+        onDelete?.();
         break;
       case ' ':
       case 'Spacebar':
