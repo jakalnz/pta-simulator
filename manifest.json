@@ -5,5 +5,12 @@
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#f2f2f2",
-  "theme_color": "#1f5fd2"
+  "theme_color": "#1f5fd2",
+  "icons": [
+    {
+      "src": "favicon/favicon-audiogram-plain.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
 }
