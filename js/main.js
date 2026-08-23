@@ -88,6 +88,16 @@ Object.entries(PRESETS).forEach(([key, preset]) => {
 });
 dom.presetSelect.appendChild(builtInPresetsGroup);
 
+// Manual on/off switch for the bundled OSCA practice cases below — flip to
+// false to hide the group again once students shouldn't see it by default.
+const SHOW_OSCA_PRACTICE_CASES = true;
+const oscaPracticeCases = [
+  { label: 'OSCA Practice Case 1', url: 'cases/osca-practice/case-1.json' },
+  { label: 'OSCA Practice Case 2', url: 'cases/osca-practice/case-2.json' },
+  { label: 'OSCA Practice Case 3', url: 'cases/osca-practice/case-3.json' },
+  { label: 'OSCA Practice Case 4', url: 'cases/osca-practice/case-4.json' },
+];
+
 // Class Case Library: a supervisor-published set of cases (see
 // js/case-library.js), listed as a second optgroup and applied via the
 // full session schema (patient + storedPoints + locked) rather than
@@ -97,7 +107,9 @@ let libraryCasesByValue = new Map();
 
 function rebuildLibraryOptgroup(library) {
   if (libraryOptgroup) libraryOptgroup.remove();
-  libraryCasesByValue = new Map();
+  Array.from(libraryCasesByValue.keys())
+    .filter((key) => key.startsWith('lib:'))
+    .forEach((key) => libraryCasesByValue.delete(key));
   if (!library || !library.cases || library.cases.length === 0) return;
   libraryOptgroup = document.createElement('optgroup');
   libraryOptgroup.label = library.label || 'Class Cases';
@@ -110,6 +122,20 @@ function rebuildLibraryOptgroup(library) {
     libraryOptgroup.appendChild(opt);
   });
   dom.presetSelect.appendChild(libraryOptgroup);
+}
+
+if (SHOW_OSCA_PRACTICE_CASES) {
+  const oscaOptgroup = document.createElement('optgroup');
+  oscaOptgroup.label = 'OSCA Practice Cases';
+  oscaPracticeCases.forEach((c, i) => {
+    const value = `osca:${i}`;
+    libraryCasesByValue.set(value, c);
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = c.label;
+    oscaOptgroup.appendChild(opt);
+  });
+  dom.presetSelect.appendChild(oscaOptgroup);
 }
 
 // A JSON import, share link, or Wilding import loads a patient that isn't
