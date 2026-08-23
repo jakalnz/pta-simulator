@@ -508,13 +508,6 @@
     gap: 10px;
   }
 
-  /* Stack the up/down arrows side-by-side instead of vertically here —
-     halves the height of the Level and Masking controls, which is the
-     biggest single win for fitting everything above the fold. */
-  .updown-group {
-    flex-direction: row;
-  }
-
   .present-btn,
   .updown-group button,
   .toggle-group button,
