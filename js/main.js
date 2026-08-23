@@ -7,7 +7,7 @@ import { buildShareUrl, readShareUrl, applyShareData } from './share-link.js';
 import { exportPdf } from './pdf-export.js';
 import { createTimer } from './timer.js';
 import { wireKeyboardShortcuts } from './keyboard-shortcuts.js';
-import { initFullscreenLandscape, initRotateHint, initFullscreenButton } from './fullscreen.js';
+import { initFullscreenLandscape, initRotateHint, initFullscreenButton } from './viewport-fullscreen.js';
 import { parseWildingLink } from './wilding-import.js';
 import { initGutterDrawer } from './gutter-drawer.js';
 import { resolveLibraryUrl, loadCaseFromUrl, saveLibraryConfig, loadLibraryConfig } from './case-library.js';

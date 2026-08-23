@@ -431,7 +431,7 @@
 
 /* Fullscreen is only meaningful on touch devices here — desktop browsers
    already have F11, and the Fullscreen/Orientation-lock APIs this button
-   drives are the mobile-only workaround (see js/fullscreen.js). */
+   drives are the mobile-only workaround (see js/viewport-fullscreen.js). */
 #fullscreen-btn {
   display: none;
 }
