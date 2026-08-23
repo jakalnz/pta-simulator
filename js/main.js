@@ -213,6 +213,10 @@ const optionsDialog = document.getElementById('options-dialog');
 document.getElementById('options-btn').addEventListener('click', () => optionsDialog.showModal());
 document.getElementById('close-options-dialog-btn').addEventListener('click', () => optionsDialog.close());
 
+const infoDialog = document.getElementById('info-dialog');
+document.getElementById('info-btn').addEventListener('click', () => infoDialog.showModal());
+document.getElementById('close-info-dialog-btn').addEventListener('click', () => infoDialog.close());
+
 const patientInfo = {
   name: document.getElementById('patient-name'),
   id: document.getElementById('patient-id'),

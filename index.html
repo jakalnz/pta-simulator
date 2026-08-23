@@ -194,6 +194,7 @@
     <button id="export-pdf-btn">Save PDF</button>
     <button id="options-btn">Options</button>
     <button id="share-btn">Share</button>
+    <button id="info-btn" title="Keyboard shortcuts and credits">Info</button>
     <button id="fullscreen-btn" type="button" aria-pressed="false">Fullscreen</button>
   </div>
 
@@ -269,6 +270,29 @@
       <button id="hints-switch" class="switch-btn" type="button" aria-pressed="true">Hints: On</button>
     </div>
     <button id="close-options-dialog-btn">Close</button>
+  </dialog>
+
+  <dialog id="info-dialog">
+    <h3>Keyboard Shortcuts</h3>
+    <table class="shortcuts-table">
+      <tbody>
+        <tr><td><kbd>&larr;</kbd> / <kbd>&rarr;</kbd></td><td>Previous / next frequency</td></tr>
+        <tr><td><kbd>&uarr;</kbd> / <kbd>&darr;</kbd></td><td>Increase / decrease presented level</td></tr>
+        <tr><td><kbd>Shift</kbd> + <kbd>&uarr;</kbd> / <kbd>&darr;</kbd></td><td>Increase / decrease masking level</td></tr>
+        <tr><td><kbd>M</kbd></td><td>Toggle masking on/off</td></tr>
+        <tr><td><kbd>Space</kbd> (hold)</td><td>Present tone</td></tr>
+        <tr><td><kbd>S</kbd></td><td>Store threshold at current point</td></tr>
+        <tr><td><kbd>Delete</kbd></td><td>Delete stored point at current frequency</td></tr>
+      </tbody>
+    </table>
+    <p class="info-note">The <strong>Hints</strong> toggle (Options) shows or hides these on-screen prompts during play.</p>
+    <hr />
+    <p class="info-credit">
+      This simulator is based on the PTA Simulator originally created by Dr Tim Wilding, University of Manchester.
+      The original tool and documentation are available at
+      <a href="https://personalpages.manchester.ac.uk/staff/tim.wilding/PTA_Sim/PTAsim.html" target="_blank" rel="noopener">personalpages.manchester.ac.uk/staff/tim.wilding/PTA_Sim</a>.
+    </p>
+    <button id="close-info-dialog-btn">Close</button>
   </dialog>
 
 </div>
