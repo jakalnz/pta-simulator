@@ -2,7 +2,7 @@ import { obfuscate, deobfuscate } from './obfuscate.js';
 
 export const SCHEMA_VERSION = 2;
 
-export function serializeSession({ patientModel, engine, patientInfo, timerSeconds, locked }) {
+export function serializeSession({ patientModel, engine, patientInfo, timerSeconds, locked, skipObfuscation = false }) {
   const patient = patientModel.getPatient();
   const state = engine.getState();
   const isLocked = Boolean(locked);
@@ -21,8 +21,10 @@ export function serializeSession({ patientModel, engine, patientInfo, timerSecon
     // the share-link's base64 hash, doesn't hand over the answer key —
     // and Edit Thresholds is disabled on load (see applyLockState in main.js).
     // Mirrors the source simulator's "hidey" URL flag, which disabled its
-    // patient-setup panel.
-    patient: isLocked ? { __obfuscated: true, data: obfuscate(patient) } : patient,
+    // patient-setup panel. skipObfuscation lets callers (the compact
+    // share-link codec) apply their own equivalent obfuscation instead —
+    // they still receive an isLocked flag either way.
+    patient: (isLocked && !skipObfuscation) ? { __obfuscated: true, data: obfuscate(patient) } : patient,
     storedPoints: engine.getStoredPoints(),
     durationSeconds: timerSeconds ?? 0,
     locked: isLocked,

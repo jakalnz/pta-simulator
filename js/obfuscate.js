@@ -27,3 +27,12 @@ export function deobfuscate(encoded) {
   const json = xorString(xored, KEY);
   return JSON.parse(json);
 }
+
+// Same deterrent, applied in place to raw bytes (compact share-link format,
+// js/share-codec.js) instead of a separate JSON+base64 pass — keeps the
+// patient block's packed size fixed and symmetric (XOR is its own inverse).
+export function xorBytes(bytes) {
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] ^= KEY.charCodeAt(i % KEY.length);
+  }
+}
