@@ -199,7 +199,26 @@ const editor = buildThresholdEditor({
   onChange: () => ui.refreshChart(),
 });
 
+const WILDING_UNLOCK_PASSWORD = '1234';
+let thresholdsLocked = false;
+let lockClickCount = 0;
+let lockClickResetTimer = null;
+const LOCK_CLICK_THRESHOLD = 5;
+const LOCK_CLICK_WINDOW_MS = 2000;
+
 document.getElementById('edit-thresholds-btn').addEventListener('click', () => {
+  if (thresholdsLocked) {
+    lockClickCount += 1;
+    clearTimeout(lockClickResetTimer);
+    lockClickResetTimer = setTimeout(() => { lockClickCount = 0; }, LOCK_CLICK_WINDOW_MS);
+    if (lockClickCount >= LOCK_CLICK_THRESHOLD) {
+      lockClickCount = 0;
+      clearTimeout(lockClickResetTimer);
+      const entered = window.prompt('Enter the password to unlock editing:');
+      if (entered === WILDING_UNLOCK_PASSWORD) unlockThresholds();
+    }
+    return;
+  }
   editor.render();
   patientDialog.showModal();
 });
@@ -272,11 +291,23 @@ function buildSessionCtx() {
 // expose the answer key to the student opening it.
 function applyLockState(locked) {
   if (!locked) return;
-  editThresholdsBtn.disabled = true;
+  thresholdsLocked = true;
+  editThresholdsBtn.setAttribute('aria-disabled', 'true');
   editThresholdsBtn.title = 'Thresholds are locked for this exam case';
   examModeToggle.checked = true;
   examModeToggle.disabled = true;
   ui.setExamMode(true);
+}
+
+function unlockThresholds() {
+  thresholdsLocked = false;
+  lockClickCount = 0;
+  clearTimeout(lockClickResetTimer);
+  editThresholdsBtn.removeAttribute('aria-disabled');
+  editThresholdsBtn.removeAttribute('title');
+  examModeToggle.checked = false;
+  examModeToggle.disabled = false;
+  ui.setExamMode(false);
 }
 
 document.getElementById('export-pdf-btn').addEventListener('click', () => {
@@ -315,7 +346,6 @@ document.getElementById('share-link-btn').addEventListener('click', async () => 
   await navigator.clipboard.writeText(url);
 });
 
-const WILDING_UNLOCK_PASSWORD = '1234';
 const wildingImportStatus = document.getElementById('wilding-import-status');
 
 document.getElementById('wilding-import-btn').addEventListener('click', () => {
