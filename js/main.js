@@ -220,7 +220,29 @@ document.getElementById('edit-thresholds-btn').addEventListener('click', () => {
     return;
   }
   editor.render();
+  renderLatency();
   patientDialog.showModal();
+});
+
+const latencyMin = document.getElementById('latency-min');
+const latencyMax = document.getElementById('latency-max');
+const latencyPreset = document.getElementById('latency-preset');
+function renderLatency() {
+  const { minMs, maxMs } = patientModel.getResponseLatency();
+  latencyMin.value = minMs;
+  latencyMax.value = maxMs;
+  latencyPreset.value = '';
+}
+function applyLatency(minMs, maxMs) {
+  patientModel.setResponseLatency(minMs, maxMs);
+  renderLatency();
+}
+latencyMin.addEventListener('change', () => applyLatency(latencyMin.value, Math.max(latencyMin.value, latencyMax.value)));
+latencyMax.addEventListener('change', () => applyLatency(Math.min(latencyMin.value, latencyMax.value), latencyMax.value));
+latencyPreset.addEventListener('change', () => {
+  if (!latencyPreset.value) return;
+  const [minMs, maxMs] = latencyPreset.value.split(',').map(Number);
+  applyLatency(minMs, maxMs);
 });
 document.getElementById('close-dialog-btn').addEventListener('click', () => patientDialog.close());
 

@@ -44,6 +44,19 @@ function insertphoneCrossDefault() {
   return row;
 }
 
+// Delay between tone onset and the patient's response (and between tone
+// offset and the response ending), drawn uniformly from [minMs, maxMs] on
+// every presentation. 400–600ms matches the source simulator; a wider or
+// later range gives a slow / hesitant responder.
+export const DEFAULT_RESPONSE_LATENCY = { minMs: 400, maxMs: 600 };
+export const LATENCY_MAX_MS = 3000;
+export const LATENCY_STEP_MS = 50;
+
+function clampLatency(ms) {
+  const n = Number.isFinite(Number(ms)) ? Number(ms) : 0;
+  return Math.min(LATENCY_MAX_MS, Math.max(0, Math.round(n / LATENCY_STEP_MS) * LATENCY_STEP_MS));
+}
+
 function defaultEarParams(cochlearRow) {
   return {
     cochlear: cochlearRow,
@@ -61,6 +74,7 @@ function buildPatient({ right, left } = {}) {
       headphone: headphoneCrossDefault(),
       insertphone: insertphoneCrossDefault(),
     },
+    responseLatency: { ...DEFAULT_RESPONSE_LATENCY },
   };
 }
 
@@ -116,6 +130,17 @@ export function createPatientModel(initial) {
     patient.crossIAA[transducer][freq] = clampLevel(value);
   }
 
+  // Patients loaded from older JSON files / share links / Wilding imports
+  // have no responseLatency, so fall back to the default range.
+  function getResponseLatency() {
+    return patient.responseLatency ?? { ...DEFAULT_RESPONSE_LATENCY };
+  }
+
+  function setResponseLatency(minMs, maxMs) {
+    const min = clampLatency(minMs);
+    patient.responseLatency = { minMs: min, maxMs: Math.max(min, clampLatency(maxMs)) };
+  }
+
   /**
    * Approximate single-number threshold, for callers (masking-required flag,
    * summary displays) that don't need the full hysteresis/jitter model:
@@ -145,6 +170,8 @@ export function createPatientModel(initial) {
     setParam,
     getCrossIAA,
     setCrossIAA,
+    getResponseLatency,
+    setResponseLatency,
     getThreshold,
     loadPreset,
     loadPatient,

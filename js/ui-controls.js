@@ -4,8 +4,6 @@ import { isMaskingRequired } from './masking-logic.js';
 import { createTonePlayer } from './tone-player.js';
 import { createNoisePlayer } from './noise-player.js';
 
-const RESPONSE_LIGHT_MS = 900;
-
 export function wireUi({ engine, patientModel, dom }) {
   let chartView = 'combined';
   let soundOn = true;
@@ -133,23 +131,27 @@ export function wireUi({ engine, patientModel, dom }) {
     }
   }
 
-  let responseLightTimer = null;
+  // The simulated patient responds after a random latency drawn per
+  // presentation from patientModel.getResponseLatency(): the light comes on
+  // that long after tone onset and goes off the same delay after release,
+  // like the source simulator. A tone shorter than the delay still produces
+  // a (late) response after it ends — students must learn to wait for it.
+  let responseOnTimer = null;
+  let responseOffTimer = null;
+  let pendingDelayMs = null; // set while the current presentation was heard
 
   function clearResponseLight() {
-    if (responseLightTimer) {
-      clearTimeout(responseLightTimer);
-      responseLightTimer = null;
-    }
+    clearTimeout(responseOnTimer);
+    clearTimeout(responseOffTimer);
+    responseOnTimer = null;
+    responseOffTimer = null;
+    pendingDelayMs = null;
     dom.freqPanel.classList.remove('responded');
   }
 
-  function flashResponseLight() {
-    clearResponseLight();
-    dom.freqPanel.classList.add('responded');
-    responseLightTimer = setTimeout(() => {
-      dom.freqPanel.classList.remove('responded');
-      responseLightTimer = null;
-    }, RESPONSE_LIGHT_MS);
+  function drawResponseDelay() {
+    const { minMs, maxMs } = patientModel.getResponseLatency();
+    return minMs + Math.random() * (maxMs - minMs);
   }
 
   // Press-and-hold, mirroring the source simulator's Present Tone button
@@ -167,10 +169,13 @@ export function wireUi({ engine, patientModel, dom }) {
     }
 
     const result = engine.presentTone();
+    clearResponseLight();
     if (result.heard) {
-      flashResponseLight();
-    } else {
-      clearResponseLight();
+      pendingDelayMs = drawResponseDelay();
+      responseOnTimer = setTimeout(() => {
+        responseOnTimer = null;
+        dom.freqPanel.classList.add('responded');
+      }, pendingDelayMs);
     }
     return result;
   }
@@ -180,13 +185,22 @@ export function wireUi({ engine, patientModel, dom }) {
     isPresenting = false;
     dom.presentBtn.classList.remove('presenting');
     tonePlayer.stop();
+    if (pendingDelayMs !== null) {
+      responseOffTimer = setTimeout(() => {
+        responseOffTimer = null;
+        pendingDelayMs = null;
+        dom.freqPanel.classList.remove('responded');
+      }, pendingDelayMs);
+    }
   }
 
-  dom.earButtons.forEach((btn) => btn.addEventListener('click', () => { clearResponseLight(); engine.setTestEar(btn.dataset.ear); }));
-  dom.modeButtons.forEach((btn) => btn.addEventListener('click', () => { clearResponseLight(); engine.setTestMode(btn.dataset.mode); }));
-  dom.transducerButtons.forEach((btn) => btn.addEventListener('click', () => { clearResponseLight(); engine.setTransducer(btn.dataset.transducer); }));
+  // Control changes deliberately don't cancel the response light: a late
+  // response to a short tone still arrives even if the clinician has
+  // already turned the dial, just as a real patient's would.
+  dom.earButtons.forEach((btn) => btn.addEventListener('click', () => { engine.setTestEar(btn.dataset.ear); }));
+  dom.modeButtons.forEach((btn) => btn.addEventListener('click', () => { engine.setTestMode(btn.dataset.mode); }));
+  dom.transducerButtons.forEach((btn) => btn.addEventListener('click', () => { engine.setTransducer(btn.dataset.transducer); }));
   dom.transducerSwitch.addEventListener('click', () => {
-    clearResponseLight();
     const next = engine.getState().transducer === 'insertphone' ? 'headphone' : 'insertphone';
     engine.setTransducer(next);
   });
@@ -195,11 +209,9 @@ export function wireUi({ engine, patientModel, dom }) {
     engine.setToggleDirection(next);
   });
   dom.maskOnBtn.addEventListener('click', () => {
-    clearResponseLight();
     if (!engine.getState().maskingOn) engine.toggleMasking();
   });
   dom.maskOffBtn.addEventListener('click', () => {
-    clearResponseLight();
     if (engine.getState().maskingOn) engine.toggleMasking();
   });
   dom.chartViewButtons.forEach((btn) => btn.addEventListener('click', () => {
@@ -207,18 +219,17 @@ export function wireUi({ engine, patientModel, dom }) {
     btn.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
     refreshChart();
   }));
-  dom.levelUpBtn.addEventListener('click', () => { clearResponseLight(); engine.adjustPresentedLevel(1); });
-  dom.levelDownBtn.addEventListener('click', () => { clearResponseLight(); engine.adjustPresentedLevel(-1); });
-  dom.freqPrevBtn.addEventListener('click', () => { clearResponseLight(); engine.stepFrequency(-1); });
-  dom.freqNextBtn.addEventListener('click', () => { clearResponseLight(); engine.stepFrequency(1); });
-  dom.maskUpBtn.addEventListener('click', () => { clearResponseLight(); engine.adjustMaskingLevel(5); });
-  dom.maskDownBtn.addEventListener('click', () => { clearResponseLight(); engine.adjustMaskingLevel(-5); });
+  dom.levelUpBtn.addEventListener('click', () => { engine.adjustPresentedLevel(1); });
+  dom.levelDownBtn.addEventListener('click', () => { engine.adjustPresentedLevel(-1); });
+  dom.freqPrevBtn.addEventListener('click', () => { engine.stepFrequency(-1); });
+  dom.freqNextBtn.addEventListener('click', () => { engine.stepFrequency(1); });
+  dom.maskUpBtn.addEventListener('click', () => { engine.adjustMaskingLevel(5); });
+  dom.maskDownBtn.addEventListener('click', () => { engine.adjustMaskingLevel(-5); });
   // No-response and Store are both clinician decisions made after one or more
   // presentations, not automatic consequences of the simulated patient's last
   // response — the clinician judges, then records, at the current dial settings.
   function markNoResponse() {
     engine.storeThreshold(true);
-    clearResponseLight();
     refreshChart();
   }
   function storeThreshold() {
@@ -227,7 +238,6 @@ export function wireUi({ engine, patientModel, dom }) {
   }
   function deletePoint() {
     engine.deleteStoredPoint();
-    clearResponseLight();
     refreshChart();
   }
   dom.noResponseBtn.addEventListener('click', markNoResponse);

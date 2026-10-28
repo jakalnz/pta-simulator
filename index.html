@@ -223,6 +223,16 @@
         <tbody></tbody>
       </table>
     </div>
+    <div class="row" title="Delay between tone onset and the patient's response, drawn at random each presentation. The response also ends this long after the tone stops.">
+      <label>Response delay min (ms) <input type="number" id="latency-min" min="0" max="3000" step="50" /></label>
+      <label>max (ms) <input type="number" id="latency-max" min="0" max="3000" step="50" /></label>
+      <select id="latency-preset" aria-label="Response delay preset">
+        <option value="">Preset…</option>
+        <option value="400,600">Typical (400–600 ms)</option>
+        <option value="700,1200">Slow responder (700–1200 ms)</option>
+        <option value="300,1500">Inconsistent (300–1500 ms)</option>
+      </select>
+    </div>
     <button id="close-dialog-btn">Close</button>
   </dialog>
 
