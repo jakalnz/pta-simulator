@@ -13,12 +13,12 @@ const ROWS = [
   { label: 'Left Cochlear Thresholds', get: (pm, f) => pm.getParam('left', 'cochlear', f), set: (pm, f, v) => pm.setParam('left', 'cochlear', f, v) },
   { label: 'Right Headphone to cochlea Ipsi (conductive)', get: (pm, f) => pm.getParam('right', 'ipsiConductive', f), set: (pm, f, v) => pm.setParam('right', 'ipsiConductive', f, v) },
   { label: 'Left Headphone to Cochlea Ipsi (conductive)', get: (pm, f) => pm.getParam('left', 'ipsiConductive', f), set: (pm, f, v) => pm.setParam('left', 'ipsiConductive', f, v) },
-  { label: 'BC to Right cochlea attenuation', get: (pm, f) => pm.getParam('right', 'bcAttenuation', f), set: (pm, f, v) => pm.setParam('right', 'bcAttenuation', f, v) },
-  { label: 'BC to Left cochlea attenuation', get: (pm, f) => pm.getParam('left', 'bcAttenuation', f), set: (pm, f, v) => pm.setParam('left', 'bcAttenuation', f, v) },
+  { label: 'Right BC transmission loss (dB, e.g. Carhart notch)', title: 'BC transmission loss: dB taken off a bone-conducted tone before it reaches this cochlea. It makes BC thresholds worse without changing the cochlear threshold or AC (AC = cochlear + conductive). Ideal ear-specific BC = cochlear threshold + this value. Use it for a Carhart notch (e.g. 15 dB at 2 kHz with a conductive loss). Leave at 0 for most patients.', get: (pm, f) => pm.getParam('right', 'bcAttenuation', f), set: (pm, f, v) => pm.setParam('right', 'bcAttenuation', f, v) },
+  { label: 'Left BC transmission loss (dB, e.g. Carhart notch)', title: 'BC transmission loss: dB taken off a bone-conducted tone before it reaches this cochlea. It makes BC thresholds worse without changing the cochlear threshold or AC (AC = cochlear + conductive). Ideal ear-specific BC = cochlear threshold + this value. Use it for a Carhart notch (e.g. 15 dB at 2 kHz with a conductive loss). Leave at 0 for most patients.', get: (pm, f) => pm.getParam('left', 'bcAttenuation', f), set: (pm, f, v) => pm.setParam('left', 'bcAttenuation', f, v) },
   { label: 'Headphone to cochlea Contra (cross)', get: (pm, f) => pm.getCrossIAA('headphone', f), set: (pm, f, v) => pm.setCrossIAA('headphone', f, v) },
   { label: 'Insertphone to cochlea Contra (cross)', get: (pm, f) => pm.getCrossIAA('insertphone', f), set: (pm, f, v) => pm.setCrossIAA('insertphone', f, v) },
-  { label: 'BC occlusion effect, Headphone (dB)', get: (pm, f) => pm.getOcclusion('headphone', f), set: (pm, f, v) => pm.setOcclusion('headphone', f, v) },
-  { label: 'BC occlusion effect, Insertphone (dB)', get: (pm, f) => pm.getOcclusion('insertphone', f), set: (pm, f, v) => pm.setOcclusion('insertphone', f, v) },
+  { label: 'BC occlusion effect, Headphone (dB)', title: 'dB added to a bone-conducted tone at the cochlea of the ear covered by the masking earphone (headphones) while masking is on. Not-masked BC is tested with ears uncovered, so it has no occlusion.', get: (pm, f) => pm.getOcclusion('headphone', f), set: (pm, f, v) => pm.setOcclusion('headphone', f, v) },
+  { label: 'BC occlusion effect, Insertphone (dB)', title: 'As above, when the masking earphone is an insert.', get: (pm, f) => pm.getOcclusion('insertphone', f), set: (pm, f, v) => pm.setOcclusion('insertphone', f, v) },
   { label: 'Right Ascending/descending diff (dB)', get: (pm, f) => pm.getParam('right', 'ascDescDiff', f), set: (pm, f, v) => pm.setParam('right', 'ascDescDiff', f, v) },
   { label: 'Left Ascending/descending diff (dB)', get: (pm, f) => pm.getParam('left', 'ascDescDiff', f), set: (pm, f, v) => pm.setParam('left', 'ascDescDiff', f, v) },
   { label: 'Right Psychometric Function width (dB)', get: (pm, f) => pm.getParam('right', 'psychWidth', f), set: (pm, f, v) => pm.setParam('right', 'psychWidth', f, v) },
@@ -47,6 +47,7 @@ export function buildThresholdEditor({ patientModel, tbody, thead, onChange }) {
       const labelCell = document.createElement('td');
       labelCell.textContent = row.label;
       labelCell.className = 'row-label';
+      if (row.title) labelCell.title = row.title;
       tr.appendChild(labelCell);
 
       FREQUENCIES.forEach((freq) => {
