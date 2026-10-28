@@ -192,6 +192,7 @@
     <label>Preset: <select id="preset-select"></select></label>
     <button id="edit-thresholds-btn">Edit Thresholds</button>
     <button id="export-pdf-btn">Save PDF</button>
+    <button id="log-btn" title="Presentation log: every tone presented and whether the patient responded">Log</button>
     <button id="options-btn">Options</button>
     <button id="share-btn">Share</button>
     <button id="info-btn" title="Keyboard shortcuts and credits">Info</button>
@@ -270,6 +271,23 @@
       <div id="case-library-status" class="wilding-import-status"></div>
     </div>
     <button id="close-share-dialog-btn">Close</button>
+  </dialog>
+
+  <dialog id="log-dialog">
+    <h3>Presentation Log</h3>
+    <p class="log-note">Every tone you present, with its settings at onset, how long you held it, the gap since the previous tone (ISI) and whether the response light came on. This log is kept for this session only: download the CSV before closing or reloading.</p>
+    <p id="log-summary" class="log-summary"></p>
+    <div class="log-table-scroll">
+      <table id="log-table">
+        <thead><tr id="log-table-head"></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="row log-actions">
+      <button id="log-download-btn" type="button">Download CSV</button>
+      <button id="log-reset-btn" type="button">Reset log</button>
+      <button id="close-log-dialog-btn" type="button">Close</button>
+    </div>
   </dialog>
 
   <dialog id="options-dialog">

@@ -4,7 +4,7 @@ import { isMaskingRequired } from './masking-logic.js';
 import { createTonePlayer } from './tone-player.js';
 import { createNoisePlayer } from './noise-player.js';
 
-export function wireUi({ engine, patientModel, dom }) {
+export function wireUi({ engine, patientModel, dom, presentationLog }) {
   let chartView = 'combined';
   let soundOn = true;
   let hintsOn = true;
@@ -159,7 +159,7 @@ export function wireUi({ engine, patientModel, dom }) {
   // response immediately; update(0) on mouseup just ramps the tone back
   // down) — the tone plays for exactly as long as the button/spacebar is
   // held, rather than a fixed pulse duration.
-  function startPresenting() {
+  function startPresenting(input = 'Pointer') {
     if (isPresenting) return null;
     isPresenting = true;
     const s = engine.getState();
@@ -168,6 +168,17 @@ export function wireUi({ engine, patientModel, dom }) {
       tonePlayer.start(s.freq);
     }
 
+    const logNumber = presentationLog?.start({
+      ear: s.testEar,
+      mode: s.testMode,
+      transducer: s.transducer,
+      freq: s.freq,
+      level: s.presentedLevel,
+      maskingOn: s.maskingOn,
+      maskingLevel: s.maskingLevel,
+      soundOn,
+    }, input);
+
     const result = engine.presentTone();
     clearResponseLight();
     if (result.heard) {
@@ -175,16 +186,18 @@ export function wireUi({ engine, patientModel, dom }) {
       responseOnTimer = setTimeout(() => {
         responseOnTimer = null;
         dom.freqPanel.classList.add('responded');
+        presentationLog?.markResponse(logNumber);
       }, pendingDelayMs);
     }
     return result;
   }
 
-  function stopPresenting() {
+  function stopPresenting(reason = 'Released') {
     if (!isPresenting) return;
     isPresenting = false;
     dom.presentBtn.classList.remove('presenting');
     tonePlayer.stop();
+    presentationLog?.end(reason);
     if (pendingDelayMs !== null) {
       responseOffTimer = setTimeout(() => {
         responseOffTimer = null;
@@ -264,9 +277,12 @@ export function wireUi({ engine, patientModel, dom }) {
   // from treating the sustained hold as a long-press gesture, which would
   // otherwise pop up their text-selection/callout menu mid-presentation.
   dom.presentBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); startPresenting(); });
-  dom.presentBtn.addEventListener('pointerup', stopPresenting);
-  dom.presentBtn.addEventListener('pointerleave', stopPresenting);
-  dom.presentBtn.addEventListener('pointercancel', stopPresenting);
+  dom.presentBtn.addEventListener('pointerup', () => stopPresenting());
+  dom.presentBtn.addEventListener('pointerleave', () => stopPresenting());
+  dom.presentBtn.addEventListener('pointercancel', () => stopPresenting('Interrupted'));
+  // A held tone stops if the window loses focus (e.g. switching apps), so
+  // the key/pointer release isn't missed and the tone left playing.
+  window.addEventListener('blur', () => stopPresenting('Interrupted'));
   dom.presentBtn.addEventListener('contextmenu', (e) => e.preventDefault());
   dom.soundSwitch.addEventListener('click', () => {
     soundOn = !soundOn;

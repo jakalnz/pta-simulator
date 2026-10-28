@@ -2,6 +2,7 @@ import { createPatientModel, PRESETS } from './patient-model.js';
 import { createAudiometerEngine } from './audiometer-engine.js';
 import { wireUi } from './ui-controls.js';
 import { buildThresholdEditor } from './threshold-editor.js';
+import { createPresentationLog } from './presentation-log.js';
 import { exportJson, importJson } from './json-io.js';
 import { buildShareUrl, readShareUrl, applyShareData } from './share-link.js';
 import { exportPdf } from './pdf-export.js';
@@ -189,7 +190,8 @@ dom.presetSelect.addEventListener('change', async () => {
   engine.clearStoredPoints();
 });
 
-const ui = wireUi({ engine, patientModel, dom });
+const presentationLog = createPresentationLog();
+const ui = wireUi({ engine, patientModel, dom, presentationLog });
 
 const patientDialog = document.getElementById('patient-dialog');
 const editor = buildThresholdEditor({
@@ -249,6 +251,59 @@ document.getElementById('close-dialog-btn').addEventListener('click', () => pati
 const shareDialog = document.getElementById('share-dialog');
 document.getElementById('share-btn').addEventListener('click', () => shareDialog.showModal());
 document.getElementById('close-share-dialog-btn').addEventListener('click', () => shareDialog.close());
+
+const logDialog = document.getElementById('log-dialog');
+const logTableBody = document.querySelector('#log-table tbody');
+const logTableHead = document.getElementById('log-table-head');
+const logSummary = document.getElementById('log-summary');
+
+function renderPresentationLog() {
+  if (!logDialog.open) return;
+  logTableHead.innerHTML = '';
+  presentationLog.columns.forEach(([name]) => {
+    const th = document.createElement('th');
+    th.textContent = name;
+    logTableHead.appendChild(th);
+  });
+  const entries = presentationLog.getEntries();
+  logTableBody.innerHTML = '';
+  entries.forEach((entry) => {
+    const tr = document.createElement('tr');
+    presentationLog.columns.forEach(([, get]) => {
+      const td = document.createElement('td');
+      td.textContent = get(entry);
+      tr.appendChild(td);
+    });
+    logTableBody.appendChild(tr);
+  });
+  const responses = entries.filter((e) => e.response !== 'None').length;
+  logSummary.textContent = entries.length
+    ? `${entries.length} presentation${entries.length === 1 ? '' : 's'}, ${responses} with a response.`
+    : 'No tones presented yet.';
+}
+
+presentationLog.onChange(renderPresentationLog);
+document.getElementById('log-btn').addEventListener('click', () => {
+  logDialog.showModal();
+  renderPresentationLog();
+});
+document.getElementById('close-log-dialog-btn').addEventListener('click', () => logDialog.close());
+document.getElementById('log-reset-btn').addEventListener('click', () => {
+  if (presentationLog.getEntries().length && !window.confirm('Clear the presentation log? Download the CSV first if you need it.')) return;
+  presentationLog.reset();
+});
+document.getElementById('log-download-btn').addEventListener('click', () => {
+  const blob = new Blob([presentationLog.toCsv()], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const name = patientInfo.name.value.trim() || 'pta';
+  a.href = url;
+  a.download = `${name.replace(/\s+/g, '_')}-presentation-log.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
 
 const optionsDialog = document.getElementById('options-dialog');
 document.getElementById('options-btn').addEventListener('click', () => optionsDialog.showModal());
@@ -475,7 +530,7 @@ wireKeyboardShortcuts({
   onLevelChange: startTimerOnce,
   onPresentStart: () => {
     startTimerOnce();
-    ui.startPresenting();
+    ui.startPresenting('Keyboard');
   },
   onPresentEnd: () => ui.stopPresenting(),
 });

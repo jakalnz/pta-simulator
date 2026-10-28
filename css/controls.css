@@ -348,6 +348,52 @@
   width: 360px;
 }
 
+#log-dialog {
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  padding: 16px;
+  max-width: 95vw;
+  width: 1000px;
+}
+
+#log-dialog .log-note,
+#log-dialog .log-summary {
+  font-size: 0.8rem;
+  margin: 0 0 8px;
+}
+
+#log-dialog .log-table-scroll {
+  max-height: 55vh;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  margin-bottom: 12px;
+}
+
+#log-table {
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  width: 100%;
+}
+
+#log-table th,
+#log-table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 3px 6px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+#log-table th {
+  position: sticky;
+  top: 0;
+  background: #f4f4f4;
+}
+
+#log-dialog .log-actions {
+  display: flex;
+  gap: 8px;
+}
+
 #share-dialog .row,
 #options-dialog .row {
   margin-bottom: 12px;
