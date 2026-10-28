@@ -89,9 +89,7 @@
         <button data-chartview="combined" aria-pressed="true">Combined</button>
         <button data-chartview="split" aria-pressed="false">Right / Left</button>
       </div>
-      <button id="annotate-btn" type="button" class="switch-btn" aria-pressed="false" title="Draw notes on the audiogram (included in Save PDF)">Annotate</button>
     </div>
-    <div class="row" id="audiogram-annotation-toolbar" hidden></div>
     <div class="chart-view" id="chart-view">
       <div class="audiogram-canvas-wrap" id="wrap-right">
         <canvas id="audiogram-canvas-right"></canvas>
@@ -106,7 +104,9 @@
       <button id="store-btn" class="touch-target">Store (S)</button>
       <button id="delete-point-btn" class="touch-target" title="Delete the stored point at the current ear/mode/frequency/masking (D)">Del</button>
       <button id="ull-btn" class="touch-target" title="Record the current level as the uncomfortable loudness level (ULL) for this ear and frequency (U). Press again at the same level to remove it. Loudness discomfort isn't simulated: record the level the patient reports.">ULL (U)</button>
+      <button id="annotate-btn" type="button" class="touch-target" aria-pressed="false" title="Draw notes on the audiogram (included in Save PDF)">Annotate</button>
     </div>
+    <div class="row" id="audiogram-annotation-toolbar" hidden></div>
     <details class="legend-details">
       <summary>Symbol Key</summary>
       <div class="legend">

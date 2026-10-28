@@ -195,6 +195,16 @@
   margin-top: 12px;
 }
 
+.chart-response-row button[aria-pressed="true"] {
+  background: var(--color-text, #222);
+  color: #fff;
+}
+
+#audiogram-annotation-toolbar {
+  justify-content: center;
+  margin-top: 8px;
+}
+
 .switch-btn {
   padding: 6px 16px;
   border: 1px solid var(--color-border);
