@@ -236,7 +236,18 @@
       </select>
     </div>
     <div class="row">
-      <button id="occlusion-reset-btn" type="button" title="Supra-aural 30/20/10 dB and inserts 10/10/0 dB at 250/500/1000 Hz (750 Hz halfway), none above 1000 Hz">Standard occlusion values</button>
+      <label title="Sets the BC occlusion rows for both headphones and inserts.">Occlusion values
+        <select id="occlusion-preset">
+          <option value="standard">Standard clinical OEFs (headphones 30/20/10, inserts 10/10/0 dB)</option>
+          <option value="25">Measured, 25th percentile</option>
+          <option value="50">Measured, median</option>
+          <option value="75">Measured, 75th percentile</option>
+          <option value="90">Measured, 90th percentile</option>
+          <option value="random">Measured, random patient</option>
+        </select>
+      </label>
+      <button id="occlusion-preset-btn" type="button">Apply</button>
+      <span class="occlusion-hint">Measured values: Wallaert et al. (2024), Trends in Hearing, Table 7 (TDH 39 and inserts), up to 2 kHz.</span>
     </div>
     <button id="close-dialog-btn">Close</button>
   </dialog>

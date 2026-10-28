@@ -1,4 +1,4 @@
-import { FREQUENCIES, clampLevel, standardOcclusionRow } from './utils.js';
+import { FREQUENCIES, clampLevel, standardOcclusionRow, occlusionPreset } from './utils.js';
 
 /**
  * Patient parameter model — deliberately mirrors the underlying physiological
@@ -161,11 +161,9 @@ export function createPatientModel(initial) {
     patient.occlusion[transducer][freq] = clampLevel(value);
   }
 
-  function resetOcclusion() {
-    patient.occlusion = {
-      headphone: standardOcclusionRow('headphone'),
-      insertphone: standardOcclusionRow('insertphone'),
-    };
+  // preset: 'standard', 25, 50, 75, 90 or 'random' (see utils.js occlusionPreset).
+  function applyOcclusionPreset(preset) {
+    patient.occlusion = occlusionPreset(preset);
   }
 
   // Patients loaded from older JSON files / share links / Wilding imports
@@ -210,7 +208,7 @@ export function createPatientModel(initial) {
     setCrossIAA,
     getOcclusion,
     setOcclusion,
-    resetOcclusion,
+    applyOcclusionPreset,
     getResponseLatency,
     setResponseLatency,
     getThreshold,

@@ -348,6 +348,11 @@
   width: 360px;
 }
 
+.occlusion-hint {
+  font-size: 0.75rem;
+  color: #555;
+}
+
 #log-dialog,
 #check-dialog,
 #method-dialog {

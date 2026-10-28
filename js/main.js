@@ -249,8 +249,9 @@ latencyPreset.addEventListener('change', () => {
   applyLatency(minMs, maxMs);
 });
 document.getElementById('close-dialog-btn').addEventListener('click', () => patientDialog.close());
-document.getElementById('occlusion-reset-btn').addEventListener('click', () => {
-  patientModel.resetOcclusion();
+document.getElementById('occlusion-preset-btn').addEventListener('click', () => {
+  const value = document.getElementById('occlusion-preset').value;
+  patientModel.applyOcclusionPreset(/^\d+$/.test(value) ? Number(value) : value);
   editor.render();
 });
 
