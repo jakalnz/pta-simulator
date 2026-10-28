@@ -295,7 +295,7 @@
 
   <dialog id="check-dialog">
     <h3>Check Audiogram</h3>
-    <p class="log-note">Compares your stored results with this patient's expected results. Levels within ±5 dB pass, and no-response symbols must match. Expected values ignore response variability. Masking is expected where Rules 1–3 apply (rule interaural attenuation: 40 dB headphones, 55 dB inserts). This check doesn't change your audiogram.</p>
+    <p class="log-note">Compares your stored results with this patient's expected results. Levels within ±5 dB pass, and no-response symbols must match. Expected values ignore response variability. Masking is expected where the selected masking rules (Options) apply: <span id="check-protocol-summary"></span> This check doesn't change your audiogram.</p>
     <p id="check-summary" class="log-summary"></p>
     <div class="log-table-scroll">
       <table id="check-table" class="log-table">
@@ -325,7 +325,7 @@
 
   <dialog id="masking-chart-dialog">
     <h3>Masking Chart</h3>
-    <p class="log-note"><strong>Automatic</strong> draws the chart live from your presentations: each tone at each masker level (filled = response, open = no response) and, once confirmed (2 responses on ascending presentations), the threshold at that masker level. <strong>Manual</strong> shows only points you add with <strong>Plot masking (P)</strong>. A plateau is 3 or more masker levels in a row with thresholds within 5 dB. Guide lines come from your plotted audiogram: start at the non-test ear's AC; over-masking may begin at the test ear's BC + 40 dB (headphones) or + 55 dB (inserts). You can keep testing with this panel open. Session only.</p>
+    <p class="log-note"><strong>Automatic</strong> draws the chart live from your presentations: each tone at each masker level (filled = response, open = no response) and, once confirmed (2 responses on ascending presentations), the threshold at that masker level. <strong>Manual</strong> shows only points you add with <strong>Plot masking (P)</strong>. A plateau is thresholds within 5 dB over at least 20 dB of masker (15 dB is acceptable for a masking dilemma). Guide lines come from your plotted audiogram: start at the non-test ear's AC; over-masking may begin at the test ear's BC + the IAA of the masking rules chosen in Options. You can keep testing with this panel open. Session only.</p>
     <div class="row log-actions">
       <label>Chart <select id="masking-chart-mode">
         <option value="auto">Automatic (from your presentations)</option>
@@ -367,6 +367,11 @@
       <button id="sound-switch" class="switch-btn" type="button" aria-pressed="true">Tone: On</button>
       <button id="direction-switch" class="switch-btn" type="button" aria-pressed="true">Up = Louder</button>
       <button id="hints-switch" class="switch-btn" type="button" aria-pressed="true">Hints: On</button>
+    </div>
+    <div class="row">
+      <label title="Which rules the Check button uses to decide where masking is needed, and the IAA for the masking chart's guide lines. Check method accepts plateau and step masking either way.">Masking rules
+        <select id="masking-protocol-select"></select>
+      </label>
     </div>
     <button id="close-options-dialog-btn">Close</button>
   </dialog>

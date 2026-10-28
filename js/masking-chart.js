@@ -1,6 +1,6 @@
 import { OTHER_EAR, formatFreq } from './utils.js';
-import { RULE_IA } from './audiogram-check.js';
-import { confirmedThreshold } from './method-review.js';
+import { ruleIa } from './masking-protocol.js';
+import { maskedLevelThreshold } from './method-review.js';
 
 /**
  * Masking (plateau) chart, after the one in Wilding's PTA_Sim: the student
@@ -10,15 +10,15 @@ import { confirmedThreshold } from './method-review.js';
  * The guide lines use only the student's plotted audiogram, never the
  * patient's hidden thresholds, so the chart is also available in exam mode:
  *  - start: the non-test ear's plotted AC (where masking should begin)
- *  - over-masking: the test ear's plotted BC + the rule interaural
- *    attenuation (40 dB headphones, 55 dB inserts). Masker above this may
- *    cross back and raise the test ear's threshold.
+ *  - over-masking: the test ear's plotted BC + the interaural attenuation
+ *    of the selected masking rules (masking-protocol.js). Masker above this
+ *    may cross back and raise the test ear's threshold.
  * Session-only, like the presentation log.
  */
 
-export const PLATEAU_POINTS = 3;
 export const PLATEAU_RANGE_DB = 5;
-export const MIN_MASKER_LEVELS = 4;
+export const PLATEAU_SPAN_DB = 20;       // e.g. 3 masker levels 10 dB apart
+export const SHORT_PLATEAU_SPAN_DB = 15; // accepted for a masking dilemma
 
 export function seriesKey(ear, mode, freq) {
   return `${ear}|${mode}|${freq}`;
@@ -74,12 +74,12 @@ export function createMaskingChartStore() {
   };
 }
 
-// Plateau: the longest run of at least 3 consecutive masker levels whose
-// thresholds are within 5 dB, once at least 4 masker levels are plotted.
-// A rise after the run suggests over-masking.
+// Plateau: the longest run of masker levels whose thresholds stay within
+// 5 dB, if it covers at least 15 dB of masker (20 dB for a full plateau;
+// 15 dB is accepted for a masking dilemma). A rise after it suggests
+// over-masking.
 export function findPlateau(points) {
   const measured = points.filter((p) => !p.noResponse);
-  if (measured.length < MIN_MASKER_LEVELS) return null;
   let best = null;
   for (let i = 0; i < measured.length; i++) {
     let lo = measured[i].tone;
@@ -91,23 +91,27 @@ export function findPlateau(points) {
       lo = Math.min(lo, measured[j].tone);
       hi = Math.max(hi, measured[j].tone);
     }
-    if (j - i + 1 >= PLATEAU_POINTS && (!best || j - i > best.end - best.start)) best = { start: i, end: j, threshold: hi };
+    const span = measured[j].masker - measured[i].masker;
+    if (!best || span > best.span) best = { start: i, end: j, span, threshold: hi };
   }
-  if (!best) return null;
+  if (!best || best.span < SHORT_PLATEAU_SPAN_DB) return null;
   const after = measured.slice(best.end + 1);
   return {
     from: measured[best.start].masker,
     to: measured[best.end].masker,
+    span: best.span,
+    short: best.span < PLATEAU_SPAN_DB,
     threshold: best.threshold,
-    risesAfter: after.some((p) => p.tone > best.threshold) ? after[0].masker : null,
+    risesAfter: after.some((p) => p.tone > best.threshold + PLATEAU_RANGE_DB) ? after[0].masker : null,
   };
 }
 
 /**
  * Automatic chart from the presentation log: for every masked tone, a dot at
  * (masker, tone level) showing whether the light came on, and at each
- * masker level the threshold confirmed the usual way (2 responses on
- * ascending presentations). Only what the student saw is used.
+ * masker level the threshold: a full search (2 responses on ascending
+ * presentations) or the plateau/step recheck (first response going up in
+ * 5 dB steps). Only what the student saw is used.
  */
 export function autoMaskingSeries(entries) {
   const series = new Map();
@@ -122,7 +126,7 @@ export function autoMaskingSeries(entries) {
   });
   series.forEach((s) => {
     s.points = [...s.byMasker.entries()]
-      .map(([masker, tones]) => ({ masker, confirmed: confirmedThreshold(tones) }))
+      .map(([masker, tones]) => ({ masker, confirmed: maskedLevelThreshold(tones) }))
       .filter((p) => p.confirmed)
       .map((p) => ({ masker: p.masker, tone: p.confirmed.level, noResponse: false }))
       .sort((a, b) => a.masker - b.masker);
@@ -141,7 +145,7 @@ export function guideLevels(key, storedPoints, transducer) {
   const nonTestAc = find(other, 'AC', true) ?? find(other, 'AC', false);
   const testBc = find(ear, 'BC', true)
     ?? [find('right', 'BC', false), find('left', 'BC', false)].filter(Boolean).sort((a, b) => a.level - b.level)[0];
-  const ia = RULE_IA[transducer] ?? RULE_IA.headphone;
+  const ia = ruleIa(transducer, freq);
   return {
     start: nonTestAc ? nonTestAc.level : null,
     overmask: testBc ? testBc.level + ia : null,
@@ -232,7 +236,7 @@ export function drawMaskingChart(canvas, { key, points, presentations = [], guid
     ctx.fillStyle = '#2e7d32';
     ctx.font = '11px system-ui, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`Plateau ${plateau.threshold} dB HL`, x(plateau.from), y(plateau.threshold + 2.5) - 4);
+    ctx.fillText(`${plateau.short ? 'Short plateau' : 'Plateau'} ${plateau.threshold} dB HL`, x(plateau.from), y(plateau.threshold + 2.5) - 4);
   }
 
   ctx.strokeStyle = earColour;

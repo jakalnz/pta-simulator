@@ -5,6 +5,7 @@ import { buildThresholdEditor } from './threshold-editor.js';
 import { createPresentationLog } from './presentation-log.js';
 import { checkAudiogram } from './audiogram-check.js';
 import { reviewMethod } from './method-review.js';
+import { MASKING_PROTOCOLS, getMaskingProtocol, setMaskingProtocol } from './masking-protocol.js';
 import { createMaskingChartStore, drawMaskingChart, guideLevels, seriesKey, seriesLabel, findPlateau, autoMaskingSeries } from './masking-chart.js';
 import { exportJson, importJson } from './json-io.js';
 import { buildShareUrl, readShareUrl, applyShareData } from './share-link.js';
@@ -340,7 +341,7 @@ function renderMaskingChart() {
   const plateau = findPlateau(points);
   document.getElementById('masking-chart-summary').textContent = !maskingChartKey
     ? (auto ? 'Turn masking on and present tones: the chart builds itself.' : 'Press Plot masking (P) to add a point.')
-    : `${points.length} masker level${points.length === 1 ? '' : 's'} with a ${auto ? 'confirmed ' : ''}threshold. ${plateau ? `Plateau at ${plateau.threshold} dB HL (masker ${plateau.from}–${plateau.to}).${plateau.risesAfter !== null ? ` Threshold rises from masker ${plateau.risesAfter}: possible over-masking.` : ''}` : 'No plateau yet.'}`;
+    : `${points.length} masker level${points.length === 1 ? '' : 's'} with a ${auto ? 'confirmed ' : ''}threshold. ${plateau ? `${plateau.short ? 'Short plateau' : 'Plateau'} at ${plateau.threshold} dB HL (${plateau.span} dB, masker ${plateau.from}–${plateau.to}).${plateau.short ? ' Acceptable only for a masking dilemma or over-masking.' : ''}${plateau.risesAfter !== null ? ` Threshold rises from masker ${plateau.risesAfter}: possible over-masking.` : ''}` : 'No plateau yet.'}`;
   document.getElementById('masking-chart-undo-btn').disabled = auto || !maskingChart.canUndo();
   document.getElementById('masking-chart-clear-btn').disabled = auto || !maskingChartKey;
 }
@@ -410,6 +411,13 @@ methodCheckBtn.addEventListener('click', () => {
 });
 document.getElementById('close-method-dialog-btn').addEventListener('click', () => methodDialog.close());
 
+const maskingProtocolSelect = document.getElementById('masking-protocol-select');
+Object.entries(MASKING_PROTOCOLS).forEach(([id, p]) => maskingProtocolSelect.appendChild(new Option(p.label, id, false, id === getMaskingProtocol())));
+maskingProtocolSelect.addEventListener('change', () => {
+  setMaskingProtocol(maskingProtocolSelect.value);
+  renderMaskingChart();
+});
+
 const checkDialog = document.getElementById('check-dialog');
 const checkBtn = document.getElementById('check-btn');
 checkBtn.addEventListener('click', () => {
@@ -432,6 +440,7 @@ checkBtn.addEventListener('click', () => {
       });
     tbody.appendChild(tr);
   });
+  document.getElementById('check-protocol-summary').textContent = `${MASKING_PROTOCOLS[getMaskingProtocol()].label}. ${MASKING_PROTOCOLS[getMaskingProtocol()].summary}`;
   document.getElementById('check-summary').textContent =
     `${counts.Correct} correct, ${counts.Incorrect} incorrect, ${counts.Missing} missing` + (counts.Info ? `, ${counts.Info} for information.` : '.');
   checkDialog.showModal();

@@ -4,20 +4,43 @@
  * logged tones, responses and stored points — never the patient's hidden
  * thresholds, so it judges method, not accuracy (use Check for that).
  *
+ * It accepts both the UK-style method (as in Wilding's PTA_Sim) and the
+ * University of Auckland Clinical Checklist (Feb 2024): 15–20 dB rises
+ * while looking for the first response, the 1 kHz retest either straight
+ * after 8 kHz or at the end, and plateau or step masking with a single
+ * recheck (then +5 dB until a response) at each masker level.
+ *
  * Findings are Pass, Review (something to look at), Incomplete (not enough
  * evidence yet) or Info. These are teaching heuristics; follow your tutor's
  * protocol where it differs.
  */
 
-const FIRST_EAR_ORDER = [1000, 2000, 4000, 8000, 500, 250, 1000];
+// 1 kHz retest after 8 kHz (UoA) or after 250 Hz (UK-style).
+const FIRST_EAR_ORDERS = [
+  [1000, 2000, 4000, 8000, 1000, 500, 250],
+  [1000, 2000, 4000, 8000, 500, 250, 1000],
+];
 const SECOND_EAR_ORDER = [1000, 2000, 4000, 8000, 500, 250];
 const OPTIONAL_FREQS = [750, 1500, 3000, 6000];
 const FAMILIARISATION_RANGE = [30, 50];
 const DURATION_RANGE_MS = [1000, 3000];
 const MIN_ISI_MS = 1000;
 const THINKING_PAUSE_MS = 10000; // longer gaps aren't part of the rhythm
+const MIN_DURATION_SPREAD_MS = 100; // tone lengths varying less than this are predictable
+const MIN_GAP_SPREAD_MS = 400;      // so are gaps
 const MIN_SEARCH_TONES = 3;
 const MAX_ASCENDING_FOR_CONFIRMATION = 4;
+const PREPARATION_STEPS = [10, 15, 20]; // rises allowed before the first response
+// Masking: a plateau is thresholds within 5 dB over at least 20 dB of masker
+// (a 15 dB plateau is acceptable for a dilemma / over-masking). Step masking
+// accepts a shift of ≤ 15 dB after the initial step and ≤ 10 dB after each
+// further 20 dB step.
+const PLATEAU_RANGE_DB = 5;
+const PLATEAU_SPAN_DB = 20;
+const SHORT_PLATEAU_SPAN_DB = 15;
+const STEP_MIN_DB = 20;
+const STEP_FIRST_SHIFT_DB = 15;
+const STEP_LATER_SHIFT_DB = 10;
 
 const heard = (e) => e.response !== 'None';
 const label = (ear) => (ear === 'right' ? 'Right' : 'Left');
@@ -70,27 +93,42 @@ export function confirmedThreshold(tones) {
   return confirmed.length ? { level: confirmed[0][0], numbers: confirmed[0][1].numbers } : null;
 }
 
-// Down 10 after a response, up 5 after none (up 10 allowed before the
-// first response in the block, while still finding a starting level).
+/**
+ * Threshold at one masker level. Either a full search (confirmed as above)
+ * or the quick recheck used in plateau and step masking: present at the
+ * previous threshold and, if there's no response, go up 5 dB at a time;
+ * the first response is the threshold at that masker level.
+ */
+export function maskedLevelThreshold(tones) {
+  const confirmed = confirmedThreshold(tones);
+  if (confirmed) return { level: confirmed.level, how: 'confirmed' };
+  const k = tones.findIndex(heard);
+  if (k === -1) return null;
+  const rising = tones.slice(0, k + 1).every((t, i) => i === 0 || t.level >= tones[i - 1].level);
+  return rising ? { level: tones[k].level, how: 'recheck' } : null;
+}
+
+// Down 10 after a response, up 5 after none (rises of 10–20 dB allowed
+// before the first response in the block, while finding a starting level).
 function stepErrors(tones) {
   const errors = [];
   let anyResponse = heard(tones[0]);
   for (let i = 1; i < tones.length; i++) {
     const prev = tones[i - 1];
     const step = tones[i].level - prev.level;
-    const ok = heard(prev) ? step === -10 : (step === 5 || (!anyResponse && step === 10));
+    const ok = heard(prev) ? step === -10 : (step === 5 || (!anyResponse && PREPARATION_STEPS.includes(step)));
     if (!ok) errors.push(tones[i].number);
     if (heard(tones[i])) anyResponse = true;
   }
   return errors;
 }
 
-function coefficientOfVariation(values) {
+// Spread (SD) of a set of times in ms. Judged in absolute terms so slower,
+// longer gaps (e.g. ≥ 3 s) aren't flagged for ordinary variation.
+function spreadMs(values) {
   if (values.length < 2) return null;
   const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  if (!mean) return null;
-  const sd = Math.sqrt(values.reduce((a, v) => a + (v - mean) ** 2, 0) / values.length);
-  return sd / mean;
+  return Math.sqrt(values.reduce((a, v) => a + (v - mean) ** 2, 0) / values.length);
 }
 
 export function reviewMethod(entries, storedPoints = []) {
@@ -108,12 +146,13 @@ export function reviewMethod(entries, storedPoints = []) {
   if (first.level >= FAMILIARISATION_RANGE[0] && first.level <= FAMILIARISATION_RANGE[1]) {
     add('Familiarisation', 'Pass', `First tone at ${first.level} dB HL (#${first.number}).`);
   } else {
-    add('Familiarisation', 'Review', `First tone at ${first.level} dB HL (#${first.number}). Start familiarisation at a clearly audible level, usually 40 dB HL, then rise in 10 dB steps until the patient responds.`);
+    add('Familiarisation', 'Review', `First tone at ${first.level} dB HL (#${first.number}). Start at a clearly audible level (30 dB HL, or 50 dB HL if a hearing loss is suspected), then rise in 10–20 dB steps until the patient responds.`);
   }
 
   // ── Threshold searches ──
   const blocks = splitBlocks(tones);
-  blocks.forEach((b) => {
+  // Masked blocks are judged per masker series under Masking below.
+  blocks.filter((b) => b.maskerLevel === null).forEach((b) => {
     const name = blockName(b);
     const range = `#${b.tones[0].number}–#${b.tones[b.tones.length - 1].number}`;
     if (b.tones.length < MIN_SEARCH_TONES) {
@@ -122,7 +161,7 @@ export function reviewMethod(entries, storedPoints = []) {
     }
     const errors = stepErrors(b.tones);
     if (errors.length) {
-      add(name, 'Review', `Step sizes at ${nums(errors)}: go down 10 dB after a response and up 5 dB after no response.`);
+      add(name, 'Review', `Step sizes at ${nums(errors)}: go down 10 dB after a response and up 5 dB after no response (rises of 10–20 dB are fine before the first response).`);
     }
     const confirmed = confirmedThreshold(b.tones);
     if (!confirmed) {
@@ -130,10 +169,10 @@ export function reviewMethod(entries, storedPoints = []) {
       return;
     }
     const stored = storedPoints.find((p) => p.ear === b.ear && p.mode === b.mode && p.freq === b.freq
-      && p.masked === (b.maskerLevel !== null) && !p.noResponse);
+      && !p.masked && !p.noResponse);
     let message = `Threshold confirmed at ${confirmed.level} dB HL on ascending presentations ${nums(confirmed.numbers)}.`;
     let status = errors.length ? 'Review' : 'Pass';
-    if (stored && b.maskerLevel === null && stored.level !== confirmed.level) {
+    if (stored && stored.level !== confirmed.level) {
       message += ` Your stored ${b.mode} result is ${stored.level} dB HL.`;
       status = 'Review';
     }
@@ -149,20 +188,25 @@ export function reviewMethod(entries, storedPoints = []) {
       .map((b) => b.freq)
       .filter((f) => !OPTIONAL_FREQS.includes(f))
       .filter((f, i, arr) => i === 0 || f !== arr[i - 1]);
-    const checkOrder = (ear, list, expected) => {
+    const describe = (list) => list.map(freqLabel).join(', ');
+    // Passes if the sequence follows any of the accepted orders.
+    const checkOrder = (ear, list, accepted) => {
       const seq = sequence(list);
-      const matches = expected.every((f, i) => seq[i] === f);
-      if (seq.length < expected.length && expected.slice(0, seq.length).every((f, i) => seq[i] === f)) {
-        add(`${label(ear)} AC order`, 'Incomplete', `So far: ${seq.map(freqLabel).join(', ')}. Expected order: ${expected.map(freqLabel).join(', ')}.`);
+      const full = accepted.find((order) => order.every((f, i) => seq[i] === f));
+      const partial = accepted.find((order) => seq.length < order.length && seq.every((f, i) => order[i] === f));
+      const expected = accepted.map(describe).join(' or ');
+      if (full) {
+        add(`${label(ear)} AC order`, 'Pass', `Order followed: ${describe(seq)} (3 and 6 kHz optional).`);
+      } else if (partial) {
+        add(`${label(ear)} AC order`, 'Incomplete', `So far: ${describe(seq)}. Expected: ${expected}.`);
       } else {
-        add(`${label(ear)} AC order`, matches ? 'Pass' : 'Review',
-          `${matches ? 'Order followed' : 'Order used'}: ${seq.map(freqLabel).join(', ')}. Expected: ${expected.map(freqLabel).join(', ')} (3 and 6 kHz optional).`);
+        add(`${label(ear)} AC order`, 'Review', `Order used: ${describe(seq)}. Expected: ${expected} (3 and 6 kHz optional).`);
       }
     };
-    checkOrder(firstEar, firstEarSwitch === -1 ? acBlocks : acBlocks.slice(0, firstEarSwitch), FIRST_EAR_ORDER);
+    checkOrder(firstEar, firstEarSwitch === -1 ? acBlocks : acBlocks.slice(0, firstEarSwitch), FIRST_EAR_ORDERS);
     if (firstEarSwitch !== -1) {
       const secondEar = acBlocks[firstEarSwitch].ear;
-      checkOrder(secondEar, acBlocks.filter((b, i) => i >= firstEarSwitch && b.ear === secondEar), SECOND_EAR_ORDER);
+      checkOrder(secondEar, acBlocks.filter((b, i) => i >= firstEarSwitch && b.ear === secondEar), [SECOND_EAR_ORDER]);
     }
   }
 
@@ -184,35 +228,96 @@ export function reviewMethod(entries, storedPoints = []) {
     }
   }
 
-  // ── Masking ──
+  // ── Masking (plateau or step method) ──
   const maskedKeys = [...new Set(blocks.filter((b) => b.maskerLevel !== null).map((b) => `${b.ear}|${b.mode}|${b.freq}`))];
   maskedKeys.forEach((key) => {
     const [ear, mode, freqText] = key.split('|');
     const freq = Number(freqText);
+    const other = ear === 'right' ? 'left' : 'right';
     const name = `${label(ear)} ${mode} ${freqLabel(freq)} masking`;
-    const firstMaskedIndex = blocks.findIndex((b) => b.ear === ear && b.mode === mode && b.freq === freq && b.maskerLevel !== null);
-    const before = blocks[firstMaskedIndex - 1];
-    if (!(before && before.ear === ear && before.mode === mode && before.freq === freq && before.maskerLevel === null)) {
-      add(name, 'Review', 'Recheck the threshold with the masker off just before starting masking.');
-    }
-    // Latest confirmed threshold at each masker level, in the order the levels were first used.
-    const plateau = new Map();
+    const sameKey = (b) => b.ear === ear && b.mode === mode && b.freq === freq;
+
+    // Threshold at each masker level (the latest attempt at that level).
+    const atMasker = new Map();
     blocks.forEach((b) => {
-      if (b.ear !== ear || b.mode !== mode || b.freq !== freq || b.maskerLevel === null) return;
-      const c = confirmedThreshold(b.tones);
-      if (c) plateau.set(b.maskerLevel, c.level);
+      if (!sameKey(b) || b.maskerLevel === null) return;
+      const t = maskedLevelThreshold(b.tones);
+      if (t) atMasker.set(b.maskerLevel, t.level);
     });
-    const series = [...plateau.entries()].sort((a, b) => a[0] - b[0]);
-    const text = series.map(([m, t]) => `masker ${m} → ${t}`).join(', ');
-    if (series.length < 4) {
-      add(name, 'Incomplete', `${series.length} masker level${series.length === 1 ? '' : 's'} with a confirmed threshold${series.length ? ` (${text})` : ''}. Find a plateau: at least 4 masker levels, raising the masker 10 dB each time, with the last 3 thresholds within 5 dB.`);
+    const series = [...atMasker.entries()].sort((a2, b2) => a2[0] - b2[0]);
+    if (!series.length) {
+      add(name, 'Incomplete', 'No response at any masker level yet.');
       return;
     }
-    const last3 = series.slice(-3).map(([, t]) => t);
-    const flat = Math.max(...last3) - Math.min(...last3) <= 5;
-    const steps = series.slice(1).every(([m], i) => m - series[i][0] === 10);
-    add(name, flat && steps ? 'Pass' : 'Review',
-      `${text}. ${flat ? `Plateau at ${Math.max(...last3)} dB HL.` : 'The last 3 thresholds are not within 5 dB, so no plateau yet.'}${steps ? '' : ' Raise the masker in 10 dB steps.'}`);
+    const text = series.map(([m, t]) => `masker ${m} → ${t}`).join(', ');
+
+    // Not-masked threshold for this ear (stored, or confirmed in the log).
+    const storedUnmasked = storedPoints.find((p) => p.ear === ear && p.mode === mode && p.freq === freq && !p.masked && !p.noResponse);
+    const unmaskedBlocks = blocks.filter((b) => sameKey(b) && b.maskerLevel === null).map((b) => confirmedThreshold(b.tones)).filter(Boolean);
+    const reference = storedUnmasked?.level ?? unmaskedBlocks[unmaskedBlocks.length - 1]?.level ?? null;
+    const nteAc = storedPoints.find((p) => p.ear === other && p.mode === 'AC' && p.freq === freq && p.masked && !p.noResponse)
+      ?? storedPoints.find((p) => p.ear === other && p.mode === 'AC' && p.freq === freq && !p.masked && !p.noResponse);
+    const startNote = nteAc ? ` Masker started at ${series[0][0]} dB (non-test AC ${nteAc.level} dB HL).` : '';
+
+    const steps = series.slice(1).map(([m], i) => m - series[i][0]);
+    const stepMethod = steps.some((d) => d >= STEP_MIN_DB)
+      || (series.length === 1 && nteAc && series[0][0] - nteAc.level >= 25);
+
+    let accepted = null; // threshold the series supports
+    if (stepMethod) {
+      // Step masking: accept once a step shifts the threshold by ≤ 15 dB
+      // (initial step, against the not-masked threshold) or ≤ 10 dB (later steps).
+      let previous = reference;
+      for (let i = 0; i < series.length && accepted === null; i++) {
+        const t = series[i][1];
+        if (previous !== null) {
+          const limit = i === 0 ? STEP_FIRST_SHIFT_DB : STEP_LATER_SHIFT_DB;
+          if (t - previous <= limit) accepted = { level: t, masker: series[i][0], shift: t - previous };
+        }
+        previous = t;
+      }
+      if (accepted) {
+        add(name, 'Pass', `Step masking: ${text}. Accepted at ${accepted.level} dB HL (shift of ${accepted.shift} dB at masker ${accepted.masker}).${startNote}`);
+      } else if (reference === null && series.length === 1) {
+        add(name, 'Info', `Step masking: ${text}. Store the not-masked threshold first so the shift can be judged.${startNote}`);
+      } else {
+        const last = series[series.length - 1];
+        add(name, 'Incomplete', `Step masking: ${text}. The threshold is still shifting: add another 20 dB of masking (a shift of ≤ 15 dB after the first step, or ≤ 10 dB after later steps, is accepted).${startNote}`);
+        accepted = { level: last[1] };
+      }
+    } else {
+      // Plateau masking: the longest run of thresholds within 5 dB.
+      let best = null;
+      for (let i = 0; i < series.length; i++) {
+        let lo = series[i][1];
+        let hi = series[i][1];
+        let j = i;
+        while (j + 1 < series.length && Math.max(hi, series[j + 1][1]) - Math.min(lo, series[j + 1][1]) <= PLATEAU_RANGE_DB) {
+          j += 1;
+          lo = Math.min(lo, series[j][1]);
+          hi = Math.max(hi, series[j][1]);
+        }
+        const span = series[j][0] - series[i][0];
+        if (!best || span > best.span) best = { span, level: hi, end: j };
+      }
+      const odd = steps.filter((d) => d !== 10 && d !== 5);
+      const stepNote = odd.length ? ' Raise the masker in 10 dB steps (5 dB near a masking dilemma).' : '';
+      const rise = series.slice(best.end + 1).some(([, t]) => t > best.level + PLATEAU_RANGE_DB)
+        ? ' The threshold rose after the plateau: possible over-masking, so the plateau value is the threshold.' : '';
+      if (best.span >= PLATEAU_SPAN_DB) {
+        add(name, odd.length ? 'Review' : 'Pass', `Plateau masking: ${text}. ${best.span} dB plateau at ${best.level} dB HL.${rise}${stepNote}${startNote}`);
+      } else if (best.span >= SHORT_PLATEAU_SPAN_DB) {
+        add(name, 'Info', `Plateau masking: ${text}. Short (${best.span} dB) plateau at ${best.level} dB HL: acceptable only for a masking dilemma or over-masking, otherwise extend to 20 dB.${rise}${stepNote}${startNote}`);
+      } else {
+        add(name, 'Incomplete', `Plateau masking: ${text}. Keep raising the masker 10 dB at a time until the threshold stays within 5 dB over 20 dB of masker (2 steps).${stepNote}${startNote}`);
+      }
+      accepted = { level: best.level };
+    }
+
+    const storedMasked = storedPoints.find((p) => p.ear === ear && p.mode === mode && p.freq === freq && p.masked && !p.noResponse);
+    if (storedMasked && accepted && Math.abs(storedMasked.level - accepted.level) > 5) {
+      add(name, 'Review', `Your stored masked result is ${storedMasked.level} dB HL, but your masking gave ${accepted.level} dB HL.`);
+    }
   });
 
   // ── Timing ──
@@ -227,8 +332,8 @@ export function reviewMethod(entries, storedPoints = []) {
     add('Tone length', short.length + long.length > tones.length * 0.1 ? 'Review' : 'Info',
       `${parts.join('; ')}. Present tones for 1–3 seconds; very short tones may end before the patient responds.`);
   }
-  const durationCv = coefficientOfVariation(tones.map((e) => e.durationMs));
-  if (tones.length >= 6 && durationCv !== null && durationCv < 0.1) {
+  const durationSpread = spreadMs(tones.map((e) => e.durationMs));
+  if (tones.length >= 6 && durationSpread !== null && durationSpread < MIN_DURATION_SPREAD_MS) {
     add('Tone length', 'Review', 'Tone lengths are very similar. Vary them within 1–3 seconds so the patient can\'t anticipate the end.');
   }
 
@@ -237,8 +342,8 @@ export function reviewMethod(entries, storedPoints = []) {
     add('Gaps between tones', 'Review', `${quick.length} gap${quick.length === 1 ? '' : 's'} under 1 second (before ${nums(quick)}). Leave time for a late response.`);
   }
   const rhythmGaps = tones.map((e) => e.isiMs).filter((v) => v !== null && v < THINKING_PAUSE_MS);
-  const gapCv = coefficientOfVariation(rhythmGaps);
-  if (rhythmGaps.length >= 6 && gapCv !== null && gapCv < 0.15) {
+  const gapSpread = spreadMs(rhythmGaps);
+  if (rhythmGaps.length >= 6 && gapSpread !== null && gapSpread < MIN_GAP_SPREAD_MS) {
     add('Gaps between tones', 'Review', 'The gaps between tones are very regular. Vary them so the patient can\'t respond to the rhythm instead of the tone.');
   } else if (!quick.length && rhythmGaps.length >= 6) {
     add('Gaps between tones', 'Pass', 'Gaps were at least 1 second and varied.');

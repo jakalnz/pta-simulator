@@ -1,4 +1,5 @@
 import { BC_MAX_LEVEL, DB_MAX, OTHER_EAR } from './utils.js';
+import { getMaskingProtocol, ruleIa } from './masking-protocol.js';
 
 /**
  * Compares the stored audiogram with the current patient's ideal results
@@ -14,19 +15,20 @@ import { BC_MAX_LEVEL, DB_MAX, OTHER_EAR } from './utils.js';
  *    attenuation (BC crosses the head unattenuated).
  *  - Masked AC / BC: the test ear's own threshold. When judging whether
  *    masking can work, the covered non-test ear gains the occlusion effect.
- * Masking is expected where the usual rules apply to the ideal not-masked
- * results; where no masker level can give a plateau (masking dilemma) the
- * masked result is reported but not graded.
+ * Masking is expected where the selected masking rules (masking-protocol.js:
+ * University of Auckland or BSA/UK) apply to the ideal not-masked results;
+ * where no masker level can give a plateau (masking dilemma) the masked
+ * result is reported but not graded.
  */
 
 export const AC_FREQS = [250, 500, 1000, 2000, 4000, 8000];
 export const BC_FREQS = [500, 1000, 2000, 4000];
 export const TOLERANCE_DB = 5;
 
-// Clinical masking-rule interaural attenuation (not the patient's actual IA,
-// which the student doesn't know): 40 dB headphones, 55 dB inserts.
-export const RULE_IA = { headphone: 40, insertphone: 55 };
 const RULE_2_GAP = 10;
+// UoA: mask BC when the test ear's air–bone gap is ≥ 15 dB and AC > 15 dB HL.
+const UOA_BC_GAP = 15;
+const UOA_BC_MIN_AC = 15;
 // Masker needed above the cross-heard tone for the non-test cochlea to stop
 // responding reliably (covers response variability).
 const MASKING_MARGIN = 5;
@@ -38,7 +40,7 @@ function maxLevel(mode, freq) {
 export function idealValues(patientModel, transducer) {
   const c = (ear, f) => patientModel.getParam(ear, 'cochlear', f);
   const cond = (ear, f) => patientModel.getParam(ear, 'ipsiConductive', f);
-  const ia = (f) => patientModel.getCrossIAA(transducer, f);
+  const ia = (f) => patientModel.getCrossIAA(transducer, f);  // the patient's actual IA
 
   const trueAC = (ear, f) => c(ear, f) + cond(ear, f);
   const bcAtt = (ear, f) => patientModel.getParam(ear, 'bcAttenuation', f);
@@ -66,15 +68,23 @@ export function idealValues(patientModel, transducer) {
   return { trueAC, trueBC, unmaskedAC, unmaskedBC, maskingFeasible };
 }
 
-// Which masked results the ideal not-masked audiogram calls for.
-export function maskingRequired(ideal, ear, mode, f, transducer) {
-  const ruleIa = RULE_IA[transducer] ?? RULE_IA.headphone;
+// Which masked results the ideal not-masked audiogram calls for, under the
+// selected masking rules. Returns a short reason, or null.
+export function maskingRequired(ideal, ear, mode, f, transducer, protocol = getMaskingProtocol()) {
+  const ia = ruleIa(transducer, f, protocol);
   const other = OTHER_EAR[ear];
   const ac = ideal.unmaskedAC(ear, f);
   const hasBC = BC_FREQS.includes(f);
+  if (protocol === 'uoa') {
+    if (mode === 'AC') {
+      const nonTestBc = hasBC ? ideal.unmaskedBC(f) : ideal.unmaskedAC(other, f);
+      return ac - ia >= nonTestBc ? `AC − IAA ${ia} ≥ non-test BC` : null;
+    }
+    return hasBC && ac - ideal.unmaskedBC(f) >= UOA_BC_GAP && ac > UOA_BC_MIN_AC ? 'air–bone gap ≥ 15 dB' : null;
+  }
   if (mode === 'AC') {
-    if (ac - ideal.unmaskedAC(other, f) >= ruleIa) return 'Rule 1';
-    if (hasBC && ac - ideal.unmaskedBC(f) >= ruleIa) return 'Rule 3';
+    if (ac - ideal.unmaskedAC(other, f) >= ia) return 'Rule 1';
+    if (hasBC && ac - ideal.unmaskedBC(f) >= ia) return 'Rule 3';
     return null;
   }
   if (hasBC && ac - ideal.unmaskedBC(f) >= RULE_2_GAP) return 'Rule 2';
