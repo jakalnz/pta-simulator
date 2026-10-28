@@ -1,4 +1,4 @@
-import { FREQUENCIES, clampLevel } from './utils.js';
+import { FREQUENCIES, clampLevel, standardOcclusionRow } from './utils.js';
 
 /**
  * Patient parameter model — deliberately mirrors the underlying physiological
@@ -81,22 +81,22 @@ function buildPatient({ right, left } = {}) {
     // ear covered by the AC transducer (the masking earphone), separately
     // for headphones and inserts.
     occlusion: {
-      headphone: flatRow(0),
-      insertphone: flatRow(0),
+      headphone: standardOcclusionRow('headphone'),
+      insertphone: standardOcclusionRow('insertphone'),
     },
     responseLatency: { ...DEFAULT_RESPONSE_LATENCY },
   };
 }
 
 // Cases saved before these fields existed (JSON files, share links, Wilding
-// imports) get the defaults: no BC attenuation, no occlusion effect.
+// imports) get the defaults: no BC attenuation, standard occlusion effect.
 function normalizePatient(p) {
   ['right', 'left'].forEach((ear) => {
     if (!p[ear].bcAttenuation) p[ear].bcAttenuation = flatRow(0);
   });
   p.occlusion = {
-    headphone: p.occlusion?.headphone ?? flatRow(0),
-    insertphone: p.occlusion?.insertphone ?? flatRow(0),
+    headphone: p.occlusion?.headphone ?? standardOcclusionRow('headphone'),
+    insertphone: p.occlusion?.insertphone ?? standardOcclusionRow('insertphone'),
   };
   return p;
 }
@@ -161,6 +161,13 @@ export function createPatientModel(initial) {
     patient.occlusion[transducer][freq] = clampLevel(value);
   }
 
+  function resetOcclusion() {
+    patient.occlusion = {
+      headphone: standardOcclusionRow('headphone'),
+      insertphone: standardOcclusionRow('insertphone'),
+    };
+  }
+
   // Patients loaded from older JSON files / share links / Wilding imports
   // have no responseLatency, so fall back to the default range.
   function getResponseLatency() {
@@ -203,6 +210,7 @@ export function createPatientModel(initial) {
     setCrossIAA,
     getOcclusion,
     setOcclusion,
+    resetOcclusion,
     getResponseLatency,
     setResponseLatency,
     getThreshold,

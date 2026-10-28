@@ -249,6 +249,10 @@ latencyPreset.addEventListener('change', () => {
   applyLatency(minMs, maxMs);
 });
 document.getElementById('close-dialog-btn').addEventListener('click', () => patientDialog.close());
+document.getElementById('occlusion-reset-btn').addEventListener('click', () => {
+  patientModel.resetOcclusion();
+  editor.render();
+});
 
 const shareDialog = document.getElementById('share-dialog');
 document.getElementById('share-btn').addEventListener('click', () => shareDialog.showModal());

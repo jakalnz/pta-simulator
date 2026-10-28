@@ -1,4 +1,4 @@
-import { FREQUENCIES, clampLevel } from './utils.js';
+import { FREQUENCIES, clampLevel, standardOcclusionRow } from './utils.js';
 
 // Frequencies present on the source simulator (personalpages.manchester.ac.uk
 // .../PTA_Sim/PTAsim.html) — it never tests 750/1500Hz, so those two rows
@@ -96,11 +96,14 @@ export function parseWildingLink(input) {
     row[1500] = interpolate(row, 1000, 2000);
   });
 
-  // The source simulator's occlusion effect is for TDH-39 headphones.
+  // The source simulator's occlusion effect is for TDH-39 headphones; older
+  // links without it get the standard headphone values.
+  const standardHeadphone = standardOcclusionRow('headphone');
+  const hasOcclusion = WILDING_FREQUENCIES.some((f) => params.get(`${f}bc_occ`) !== null);
   const occlusionRow = {};
-  WILDING_FREQUENCIES.forEach((f) => { occlusionRow[f] = num(params, `${f}bc_occ`, 0); });
-  occlusionRow[750] = interpolate(occlusionRow, 500, 1000);
-  occlusionRow[1500] = interpolate(occlusionRow, 1000, 2000);
+  WILDING_FREQUENCIES.forEach((f) => { occlusionRow[f] = hasOcclusion ? num(params, `${f}bc_occ`, 0) : standardHeadphone[f]; });
+  occlusionRow[750] = hasOcclusion ? interpolate(occlusionRow, 500, 1000) : standardHeadphone[750];
+  occlusionRow[1500] = hasOcclusion ? interpolate(occlusionRow, 1000, 2000) : standardHeadphone[1500];
 
   const patient = {
     right: { ...earParams.right },
@@ -111,7 +114,7 @@ export function parseWildingLink(input) {
     },
     occlusion: {
       headphone: occlusionRow,
-      insertphone: Object.fromEntries(FREQUENCIES.map((f) => [f, 0])),
+      insertphone: standardOcclusionRow('insertphone'),
     },
   };
 
