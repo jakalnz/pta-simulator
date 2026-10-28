@@ -102,7 +102,13 @@ export function drawSymbol(ctx, point, width, height) {
   ctx.fillStyle = color;
   ctx.lineWidth = 2;
 
-  if (point.mode === 'AC' && !point.masked) {
+  if (point.mode === 'ULL') {
+    // ULL: a "U" in the ear's colour, offset like BC (right left of the line).
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('U', baseX + (point.ear === 'right' ? -BC_OFFSET : BC_OFFSET), y);
+  } else if (point.mode === 'AC' && !point.masked) {
     if (point.ear === 'right') {
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);

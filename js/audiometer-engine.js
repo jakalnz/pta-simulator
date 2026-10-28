@@ -241,6 +241,23 @@ export function createAudiometerEngine(patientModel) {
     return point;
   }
 
+  /**
+   * ULL (uncomfortable loudness level) at the current ear, frequency and
+   * level. Loudness discomfort isn't simulated: the clinician records the
+   * level the patient reports. Storing the same level again removes it.
+   */
+  function toggleUll() {
+    const idx = storedPoints.findIndex((p) => p.ear === state.testEar && p.mode === 'ULL' && p.freq === state.freq);
+    let point = null;
+    if (idx >= 0 && storedPoints[idx].level === state.presentedLevel) {
+      storedPoints.splice(idx, 1);
+    } else {
+      point = upsertPoint({ ear: state.testEar, mode: 'ULL', freq: state.freq, level: state.presentedLevel, masked: false, noResponse: false });
+    }
+    emit();
+    return point;
+  }
+
   function getStoredPoints() {
     return [...storedPoints];
   }
@@ -320,6 +337,7 @@ export function createAudiometerEngine(patientModel) {
     evaluateResponse,
     presentTone,
     storeThreshold,
+    toggleUll,
     getStoredPoints,
     deleteStoredPoint,
     clearStoredPoints,

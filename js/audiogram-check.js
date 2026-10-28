@@ -110,6 +110,8 @@ export function checkAudiogram({ patientModel, points, transducer }) {
   const has = (ear, mode, f, masked) => points.some((p) => p.ear === ear && p.mode === mode && p.freq === f
     && (masked === undefined || p.masked === masked));
 
+  // ULL points aren't graded: loudness discomfort isn't simulated.
+  points = points.filter((p) => p.mode !== 'ULL');
   points.forEach((p) => {
     const series = `${p.mode}${p.masked ? ' masked' : ''}`;
     const row = { ear: p.ear, freq: p.freq, series, yours: formatResult({ nr: p.noResponse, level: p.level }) };

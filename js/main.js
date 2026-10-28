@@ -454,6 +454,10 @@ document.getElementById('close-options-dialog-btn').addEventListener('click', ()
 const infoDialog = document.getElementById('info-dialog');
 document.getElementById('info-btn').addEventListener('click', () => infoDialog.showModal());
 document.getElementById('close-info-dialog-btn').addEventListener('click', () => infoDialog.close());
+document.getElementById('ull-btn').addEventListener('click', () => {
+  engine.toggleUll();
+  ui.refreshChart();
+});
 
 const patientInfo = {
   name: document.getElementById('patient-name'),
@@ -673,6 +677,16 @@ wireKeyboardShortcuts({
     engine.deleteStoredPoint();
     ui.refreshChart();
   },
+  onNoResponse: () => {
+    startTimerOnce();
+    engine.storeThreshold(true);
+    ui.refreshChart();
+  },
+  onUll: () => {
+    engine.toggleUll();
+    ui.refreshChart();
+  },
+  onHelp: () => { if (!infoDialog.open) infoDialog.showModal(); },
   onLevelChange: startTimerOnce,
   onPresentStart: () => {
     startTimerOnce();

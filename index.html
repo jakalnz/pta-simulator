@@ -102,7 +102,8 @@
     <div class="row chart-response-row">
       <button id="no-response-btn" class="touch-target">No Response</button>
       <button id="store-btn" class="touch-target">Store (S)</button>
-      <button id="delete-point-btn" class="touch-target" title="Delete the stored point at the current ear/mode/frequency/masking">Del</button>
+      <button id="delete-point-btn" class="touch-target" title="Delete the stored point at the current ear/mode/frequency/masking (D)">Del</button>
+      <button id="ull-btn" class="touch-target" title="Record the current level as the uncomfortable loudness level (ULL) for this ear and frequency (U). Press again at the same level to remove it. Loudness discomfort isn't simulated: record the level the patient reports.">ULL (U)</button>
     </div>
     <details class="legend-details">
       <summary>Symbol Key</summary>
@@ -116,6 +117,7 @@
         <div class="legend__item"><span style="color:#d21f1f">◁</span> BC-R masked</div>
         <div class="legend__item"><span style="color:#1f5fd2">▷</span> BC-L masked</div>
         <div class="legend__item">↓ No response</div>
+        <div class="legend__item"><span style="color:#d21f1f">U</span> / <span style="color:#1f5fd2">U</span> ULL (right / left)</div>
       </div>
     </details>
     <details class="visual-details" id="visual-details">
@@ -386,9 +388,15 @@
         <tr><td><kbd>Shift</kbd> + <kbd>&uarr;</kbd> / <kbd>&darr;</kbd></td><td>Increase / decrease masking level</td></tr>
         <tr><td><kbd>M</kbd></td><td>Toggle masking on/off</td></tr>
         <tr><td><kbd>Space</kbd> (hold)</td><td>Present tone</td></tr>
+        <tr><td><kbd>R</kbd> / <kbd>L</kbd></td><td>Test right / left ear</td></tr>
+        <tr><td><kbd>B</kbd></td><td>Switch AC / BC</td></tr>
+        <tr><td><kbd>I</kbd></td><td>Switch headphones / inserts</td></tr>
         <tr><td><kbd>S</kbd></td><td>Store threshold at current point</td></tr>
+        <tr><td><kbd>N</kbd></td><td>Store no response at the current level</td></tr>
+        <tr><td><kbd>U</kbd></td><td>Store (or remove) a ULL at the current level</td></tr>
         <tr><td><kbd>P</kbd></td><td>Plot current tone and masker levels on your masking chart</td></tr>
-        <tr><td><kbd>Delete</kbd></td><td>Delete stored point at current frequency</td></tr>
+        <tr><td><kbd>D</kbd> / <kbd>Delete</kbd></td><td>Delete stored point at current frequency</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
       </tbody>
     </table>
     <p class="info-note">The <strong>Hints</strong> toggle (Options) shows or hides these on-screen prompts during play.</p>
