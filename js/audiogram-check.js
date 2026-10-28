@@ -10,8 +10,10 @@ import { BC_MAX_LEVEL, DB_MAX, OTHER_EAR } from './utils.js';
  * ±5 dB of ideal passes.
  *  - Not-masked AC: the better of the test cochlea (+ conductive component)
  *    and the other cochlea heard across the head (+ interaural attenuation).
- *  - Not-masked BC: the better cochlea (BC crosses the head unattenuated).
- *  - Masked AC / BC: the test ear's own threshold.
+ *  - Not-masked BC: the better cochlea, each including its own BC
+ *    attenuation (BC crosses the head unattenuated).
+ *  - Masked AC / BC: the test ear's own threshold. When judging whether
+ *    masking can work, the covered non-test ear gains the occlusion effect.
  * Masking is expected where the usual rules apply to the ideal not-masked
  * results; where no masker level can give a plateau (masking dilemma) the
  * masked result is reported but not graded.
@@ -39,16 +41,22 @@ export function idealValues(patientModel, transducer) {
   const ia = (f) => patientModel.getCrossIAA(transducer, f);
 
   const trueAC = (ear, f) => c(ear, f) + cond(ear, f);
-  const trueBC = (ear, f) => c(ear, f);
+  const bcAtt = (ear, f) => patientModel.getParam(ear, 'bcAttenuation', f);
+  const occlusion = (f) => patientModel.getOcclusion(transducer, f);
+  const trueBC = (ear, f) => c(ear, f) + bcAtt(ear, f);
   const unmaskedAC = (ear, f) => Math.min(trueAC(ear, f), c(OTHER_EAR[ear], f) + ia(f));
-  const unmaskedBC = (f) => Math.min(c('right', f), c('left', f));
+  // Not-masked BC is tested with both ears uncovered, so no occlusion.
+  const unmaskedBC = (f) => Math.min(trueBC('right', f), trueBC('left', f));
 
   // Is there a masker level that stops the other cochlea responding to the
   // tone at the test ear's true threshold without over-masking the test
   // cochlea (and within the audiometer's output)?
   function maskingFeasible(ear, mode, f) {
     const other = OTHER_EAR[ear];
-    const toneAtOther = mode === 'AC' ? trueAC(ear, f) - ia(f) : trueBC(ear, f);
+    // With masking the non-test ear is covered, so BC gains the occlusion effect there.
+    const toneAtOther = mode === 'AC'
+      ? trueAC(ear, f) - ia(f)
+      : trueBC(ear, f) - bcAtt(other, f) + occlusion(f);
     if (c(other, f) > toneAtOther) return true;
     const lowest = toneAtOther + MASKING_MARGIN + cond(other, f);
     const highest = Math.min(c(ear, f) + ia(f), DB_MAX);

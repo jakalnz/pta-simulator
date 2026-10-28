@@ -15,6 +15,8 @@ const ROWS = [
   { suffix: 'L_t', ear: 'left', param: 'cochlear', fallback: 0 },
   { suffix: 'R_c', ear: 'right', param: 'ipsiConductive', fallback: 0 },
   { suffix: 'L_c', ear: 'left', param: 'ipsiConductive', fallback: 0 },
+  { suffix: 'R_bc', ear: 'right', param: 'bcAttenuation', fallback: 0 },
+  { suffix: 'L_bc', ear: 'left', param: 'bcAttenuation', fallback: 0 },
   { suffix: 'rupdown', ear: 'right', param: 'ascDescDiff', fallback: 2 },
   { suffix: 'lupdown', ear: 'left', param: 'ascDescDiff', fallback: 2 },
   { suffix: 'rfunwidth', ear: 'right', param: 'psychWidth', fallback: 4 },
@@ -82,7 +84,7 @@ export function parseWildingLink(input) {
 
   const earParams = { right: {}, left: {} };
   ['right', 'left'].forEach((ear) => {
-    ['cochlear', 'ipsiConductive', 'ascDescDiff', 'psychWidth'].forEach((param) => {
+    ['cochlear', 'ipsiConductive', 'bcAttenuation', 'ascDescDiff', 'psychWidth'].forEach((param) => {
       earParams[ear][param] = {};
     });
   });
@@ -94,12 +96,22 @@ export function parseWildingLink(input) {
     row[1500] = interpolate(row, 1000, 2000);
   });
 
+  // The source simulator's occlusion effect is for TDH-39 headphones.
+  const occlusionRow = {};
+  WILDING_FREQUENCIES.forEach((f) => { occlusionRow[f] = num(params, `${f}bc_occ`, 0); });
+  occlusionRow[750] = interpolate(occlusionRow, 500, 1000);
+  occlusionRow[1500] = interpolate(occlusionRow, 1000, 2000);
+
   const patient = {
     right: { ...earParams.right },
     left: { ...earParams.left },
     crossIAA: {
       headphone: crossIAARow,
       insertphone: insertphoneCrossDefault(),
+    },
+    occlusion: {
+      headphone: occlusionRow,
+      insertphone: Object.fromEntries(FREQUENCIES.map((f) => [f, 0])),
     },
   };
 

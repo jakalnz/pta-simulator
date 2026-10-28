@@ -61,6 +61,9 @@ function defaultEarParams(cochlearRow) {
   return {
     cochlear: cochlearRow,
     ipsiConductive: flatRow(0),
+    // dB subtracted from a BC tone reaching this cochlea (e.g. Carhart's
+    // notch), separate from the cochlear threshold.
+    bcAttenuation: flatRow(0),
     ascDescDiff: flatRow(2),
     psychWidth: flatRow(4),
   };
@@ -74,8 +77,28 @@ function buildPatient({ right, left } = {}) {
       headphone: headphoneCrossDefault(),
       insertphone: insertphoneCrossDefault(),
     },
+    // BC occlusion effect: dB added to a BC tone reaching the cochlea of an
+    // ear covered by the AC transducer (the masking earphone), separately
+    // for headphones and inserts.
+    occlusion: {
+      headphone: flatRow(0),
+      insertphone: flatRow(0),
+    },
     responseLatency: { ...DEFAULT_RESPONSE_LATENCY },
   };
+}
+
+// Cases saved before these fields existed (JSON files, share links, Wilding
+// imports) get the defaults: no BC attenuation, no occlusion effect.
+function normalizePatient(p) {
+  ['right', 'left'].forEach((ear) => {
+    if (!p[ear].bcAttenuation) p[ear].bcAttenuation = flatRow(0);
+  });
+  p.occlusion = {
+    headphone: p.occlusion?.headphone ?? flatRow(0),
+    insertphone: p.occlusion?.insertphone ?? flatRow(0),
+  };
+  return p;
 }
 
 export const PRESETS = {
@@ -112,7 +135,7 @@ export const PRESETS = {
 };
 
 export function createPatientModel(initial) {
-  let patient = initial ?? PRESETS.normal.generate();
+  let patient = normalizePatient(initial ?? PRESETS.normal.generate());
 
   function getParam(ear, param, freq) {
     return patient[ear][param][freq];
@@ -130,6 +153,14 @@ export function createPatientModel(initial) {
     patient.crossIAA[transducer][freq] = clampLevel(value);
   }
 
+  function getOcclusion(transducer, freq) {
+    return patient.occlusion[transducer][freq];
+  }
+
+  function setOcclusion(transducer, freq, value) {
+    patient.occlusion[transducer][freq] = clampLevel(value);
+  }
+
   // Patients loaded from older JSON files / share links / Wilding imports
   // have no responseLatency, so fall back to the default range.
   function getResponseLatency() {
@@ -144,21 +175,21 @@ export function createPatientModel(initial) {
   /**
    * Approximate single-number threshold, for callers (masking-required flag,
    * summary displays) that don't need the full hysteresis/jitter model:
-   * BC threshold == cochlear reserve; AC threshold == cochlear reserve + ipsi conductive.
+   * BC threshold == cochlear reserve + BC attenuation; AC threshold == cochlear reserve + ipsi conductive.
    */
   function getThreshold(ear, mode, freq) {
     const cochlear = getParam(ear, 'cochlear', freq);
-    if (mode === 'BC') return cochlear;
+    if (mode === 'BC') return clampLevel(cochlear + getParam(ear, 'bcAttenuation', freq));
     return clampLevel(cochlear + getParam(ear, 'ipsiConductive', freq));
   }
 
   function loadPreset(name) {
     if (!PRESETS[name]) throw new Error(`Unknown preset: ${name}`);
-    patient = PRESETS[name].generate();
+    patient = normalizePatient(PRESETS[name].generate());
   }
 
   function loadPatient(newPatient) {
-    patient = newPatient;
+    patient = normalizePatient(newPatient);
   }
 
   function getPatient() {
@@ -170,6 +201,8 @@ export function createPatientModel(initial) {
     setParam,
     getCrossIAA,
     setCrossIAA,
+    getOcclusion,
+    setOcclusion,
     getResponseLatency,
     setResponseLatency,
     getThreshold,

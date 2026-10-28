@@ -10,8 +10,6 @@ export function getEffectiveLevelAtContraCochlea(freq, presentedLevel, transduce
   return presentedLevel - attenuation;
 }
 
-const OCCLUSION_EFFECT = { 250: 15, 500: 15, 1000: 10 };
-
 export function isMaskingRequired({ testEar, testMode, freq, presentedLevel, transducer, patientModel }) {
   const nonTestEar = OTHER_EAR[testEar];
   if (testMode === 'AC') {
@@ -22,13 +20,6 @@ export function isMaskingRequired({ testEar, testMode, freq, presentedLevel, tra
   // could reach the non-test ear at ~0dB IAA.
   const contraLevel = getEffectiveLevelAtContraCochlea(freq, presentedLevel, transducer, 'BC', patientModel);
   return contraLevel > patientModel.getThreshold(nonTestEar, 'AC', freq);
-}
-
-export function getOcclusionCorrection(freq, transducer) {
-  if (transducer !== 'insertphone' && OCCLUSION_EFFECT[freq]) {
-    return OCCLUSION_EFFECT[freq];
-  }
-  return 0;
 }
 
 export function createPlateauTracker() {

@@ -138,8 +138,15 @@ export function createAudiometerEngine(patientModel) {
     const ipsiConductiveTest = testMode === 'AC' ? patientModel.getParam(testEar, 'ipsiConductive', freq) : 0;
     const ipsiConductiveOther = testMode === 'AC' ? patientModel.getParam(otherEar, 'ipsiConductive', freq) : 0;
 
-    const testCochleaLevel = presentedLevel - ipsiConductiveTest;
-    const contraCochleaLevel = presentedLevel - cross;
+    // BC: each cochlea can have its own BC attenuation, and with masking on
+    // the non-test ear is covered by the masking earphone, so the occlusion
+    // effect for that transducer raises the BC tone reaching its cochlea.
+    const bcAttenuationTest = testMode === 'BC' ? patientModel.getParam(testEar, 'bcAttenuation', freq) : 0;
+    const bcAttenuationOther = testMode === 'BC' ? patientModel.getParam(otherEar, 'bcAttenuation', freq) : 0;
+    const occlusionOther = testMode === 'BC' && maskingOn ? patientModel.getOcclusion(transducer, freq) : 0;
+
+    const testCochleaLevel = presentedLevel - ipsiConductiveTest - bcAttenuationTest;
+    const contraCochleaLevel = presentedLevel - cross - bcAttenuationOther + occlusionOther;
 
     const testThresholdBase = patientModel.getParam(testEar, 'cochlear', freq);
     const contraThresholdBase = patientModel.getParam(otherEar, 'cochlear', freq);
