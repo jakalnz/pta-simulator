@@ -192,6 +192,7 @@
     <label>Preset: <select id="preset-select"></select></label>
     <button id="edit-thresholds-btn">Edit Thresholds</button>
     <button id="export-pdf-btn">Save PDF</button>
+    <button id="check-btn" title="Compare your audiogram with this patient's expected results">Check</button>
     <button id="log-btn" title="Presentation log: every tone presented and whether the patient responded">Log</button>
     <button id="options-btn">Options</button>
     <button id="share-btn">Share</button>
@@ -273,12 +274,27 @@
     <button id="close-share-dialog-btn">Close</button>
   </dialog>
 
+  <dialog id="check-dialog">
+    <h3>Check Audiogram</h3>
+    <p class="log-note">Compares your stored results with this patient's expected results. Levels within ±5 dB pass, and no-response symbols must match. Expected values ignore response variability. Masking is expected where Rules 1–3 apply (rule interaural attenuation: 40 dB headphones, 55 dB inserts). This check doesn't change your audiogram.</p>
+    <p id="check-summary" class="log-summary"></p>
+    <div class="log-table-scroll">
+      <table id="check-table" class="log-table">
+        <thead><tr><th>Ear</th><th>Series</th><th>Freq (Hz)</th><th>Yours</th><th>Expected</th><th>Result</th><th>Note</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="row log-actions">
+      <button id="close-check-dialog-btn" type="button">Close</button>
+    </div>
+  </dialog>
+
   <dialog id="log-dialog">
     <h3>Presentation Log</h3>
     <p class="log-note">Every tone you present, with its settings at onset, how long you held it, the gap since the previous tone (ISI) and whether the response light came on. This log is kept for this session only: download the CSV before closing or reloading.</p>
     <p id="log-summary" class="log-summary"></p>
     <div class="log-table-scroll">
-      <table id="log-table">
+      <table id="log-table" class="log-table">
         <thead><tr id="log-table-head"></tr></thead>
         <tbody></tbody>
       </table>

@@ -131,6 +131,10 @@ export function createAudiometerEngine(patientModel) {
     const otherEar = OTHER_EAR[testEar];
 
     const cross = testMode === 'AC' ? patientModel.getCrossIAA(transducer, freq) : 0;
+    // The masker always reaches the non-test ear through the AC transducer,
+    // so it crosses back to the test cochlea by the AC interaural attenuation
+    // even when the tone itself is BC.
+    const maskerCross = patientModel.getCrossIAA(transducer, freq);
     const ipsiConductiveTest = testMode === 'AC' ? patientModel.getParam(testEar, 'ipsiConductive', freq) : 0;
     const ipsiConductiveOther = testMode === 'AC' ? patientModel.getParam(otherEar, 'ipsiConductive', freq) : 0;
 
@@ -146,7 +150,7 @@ export function createAudiometerEngine(patientModel) {
 
     if (maskingOn) {
       const maskerAtContraCochlea = maskingLevel - ipsiConductiveOther;
-      const maskerCrossToTestCochlea = testMode === 'AC' ? maskingLevel - cross : maskingLevel;
+      const maskerCrossToTestCochlea = maskingLevel - maskerCross;
       effectiveContraThreshold = Math.max(contraThresholdBase, maskerAtContraCochlea);
       if (maskerCrossToTestCochlea > testThresholdBase) {
         effectiveTestThreshold = maskerCrossToTestCochlea;
@@ -170,7 +174,7 @@ export function createAudiometerEngine(patientModel) {
       effectiveTestThreshold,
       effectiveContraThreshold,
       maskerAtContraCochlea: maskingOn ? maskingLevel - ipsiConductiveOther : null,
-      maskerCrossToTestCochlea: maskingOn && overmasked ? (testMode === 'AC' ? maskingLevel - cross : maskingLevel) : null,
+      maskerCrossToTestCochlea: maskingOn && overmasked ? maskingLevel - maskerCross : null,
     };
   }
 

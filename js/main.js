@@ -3,6 +3,7 @@ import { createAudiometerEngine } from './audiometer-engine.js';
 import { wireUi } from './ui-controls.js';
 import { buildThresholdEditor } from './threshold-editor.js';
 import { createPresentationLog } from './presentation-log.js';
+import { checkAudiogram } from './audiogram-check.js';
 import { exportJson, importJson } from './json-io.js';
 import { buildShareUrl, readShareUrl, applyShareData } from './share-link.js';
 import { exportPdf } from './pdf-export.js';
@@ -305,6 +306,34 @@ document.getElementById('log-download-btn').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
+const checkDialog = document.getElementById('check-dialog');
+const checkBtn = document.getElementById('check-btn');
+checkBtn.addEventListener('click', () => {
+  const { rows, counts } = checkAudiogram({
+    patientModel,
+    points: engine.getStoredPoints(),
+    transducer: engine.getState().transducer,
+  });
+  const tbody = document.querySelector('#check-table tbody');
+  tbody.innerHTML = '';
+  rows.forEach((r) => {
+    const tr = document.createElement('tr');
+    [r.ear === 'either' ? 'Either' : r.ear[0].toUpperCase() + r.ear.slice(1), r.series, r.freq, r.yours, r.expected, r.status, r.note]
+      .forEach((value, i) => {
+        const td = document.createElement('td');
+        td.textContent = value;
+        if (i === 5) td.className = `status-${r.status.toLowerCase()}`;
+        if (i === 6) td.className = 'check-note';
+        tr.appendChild(td);
+      });
+    tbody.appendChild(tr);
+  });
+  document.getElementById('check-summary').textContent =
+    `${counts.Correct} correct, ${counts.Incorrect} incorrect, ${counts.Missing} missing` + (counts.Info ? `, ${counts.Info} for information.` : '.');
+  checkDialog.showModal();
+});
+document.getElementById('close-check-dialog-btn').addEventListener('click', () => checkDialog.close());
+
 const optionsDialog = document.getElementById('options-dialog');
 document.getElementById('options-btn').addEventListener('click', () => optionsDialog.showModal());
 document.getElementById('close-options-dialog-btn').addEventListener('click', () => optionsDialog.close());
@@ -373,6 +402,7 @@ function applyLockState(locked) {
   editThresholdsBtn.title = 'Thresholds are locked for this exam case';
   examModeToggle.checked = true;
   examModeToggle.disabled = true;
+  checkBtn.hidden = true; // the check reveals the answer key
   ui.setExamMode(true);
 }
 
@@ -384,6 +414,7 @@ function unlockThresholds() {
   editThresholdsBtn.removeAttribute('title');
   examModeToggle.checked = false;
   examModeToggle.disabled = false;
+  checkBtn.hidden = false;
   ui.setExamMode(false);
 }
 
