@@ -1,5 +1,6 @@
 import { OTHER_EAR, formatFreq } from './utils.js';
 import { RULE_IA } from './audiogram-check.js';
+import { confirmedThreshold } from './method-review.js';
 
 /**
  * Masking (plateau) chart, after the one in Wilding's PTA_Sim: the student
@@ -102,6 +103,34 @@ export function findPlateau(points) {
   };
 }
 
+/**
+ * Automatic chart from the presentation log: for every masked tone, a dot at
+ * (masker, tone level) showing whether the light came on, and at each
+ * masker level the threshold confirmed the usual way (2 responses on
+ * ascending presentations). Only what the student saw is used.
+ */
+export function autoMaskingSeries(entries) {
+  const series = new Map();
+  entries.filter((e) => e.maskerLevel !== null && e.durationMs !== null).forEach((e) => {
+    const key = seriesKey(e.earKey, e.mode, e.freq);
+    if (!series.has(key)) series.set(key, { byMasker: new Map(), presentations: [] });
+    const s = series.get(key);
+    const heard = e.response !== 'None';
+    s.presentations.push({ masker: e.maskerLevel, level: e.level, heard });
+    if (!s.byMasker.has(e.maskerLevel)) s.byMasker.set(e.maskerLevel, []);
+    s.byMasker.get(e.maskerLevel).push(e);
+  });
+  series.forEach((s) => {
+    s.points = [...s.byMasker.entries()]
+      .map(([masker, tones]) => ({ masker, confirmed: confirmedThreshold(tones) }))
+      .filter((p) => p.confirmed)
+      .map((p) => ({ masker: p.masker, tone: p.confirmed.level, noResponse: false }))
+      .sort((a, b) => a.masker - b.masker);
+    delete s.byMasker;
+  });
+  return series;
+}
+
 // Start and over-masking guide levels from the plotted audiogram.
 export function guideLevels(key, storedPoints, transducer) {
   const [ear, mode, freqText] = key.split('|');
@@ -123,7 +152,7 @@ export function guideLevels(key, storedPoints, transducer) {
 
 const AXIS = { xMin: 0, xMax: 120, yMin: -10, yMax: 120 };
 
-export function drawMaskingChart(canvas, { key, points, guides, transducer }) {
+export function drawMaskingChart(canvas, { key, points, presentations = [], guides, transducer }) {
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.clientWidth || 640;
   const H = canvas.clientHeight || 420;
@@ -181,6 +210,19 @@ export function drawMaskingChart(canvas, { key, points, guides, transducer }) {
     vLine(guides.start, '#2e7d32', `Start ${guides.start}`);
     vLine(guides.overmask, '#b3261e', `Over-masking ≥ ${guides.overmask}`);
   }
+
+  // Individual presentations (automatic mode): filled = response, open = none.
+  // Repeats at the same masker/level spread out sideways so each shows.
+  const seen = new Map();
+  presentations.forEach((p) => {
+    const k = `${p.masker}|${p.level}`;
+    const n = seen.get(k) ?? 0;
+    seen.set(k, n + 1);
+    const px = x(p.masker) + (n % 2 ? 1 : -1) * Math.ceil(n / 2) * 6;
+    ctx.beginPath();
+    ctx.arc(px, y(p.level), 3, 0, Math.PI * 2);
+    if (p.heard) { ctx.fillStyle = '#2e7d32'; ctx.fill(); } else { ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.stroke(); }
+  });
 
   if (!points.length) return;
   const plateau = findPlateau(points);

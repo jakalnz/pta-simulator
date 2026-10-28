@@ -5,7 +5,7 @@ import { buildThresholdEditor } from './threshold-editor.js';
 import { createPresentationLog } from './presentation-log.js';
 import { checkAudiogram } from './audiogram-check.js';
 import { reviewMethod } from './method-review.js';
-import { createMaskingChartStore, drawMaskingChart, guideLevels, seriesKey, seriesLabel, findPlateau } from './masking-chart.js';
+import { createMaskingChartStore, drawMaskingChart, guideLevels, seriesKey, seriesLabel, findPlateau, autoMaskingSeries } from './masking-chart.js';
 import { exportJson, importJson } from './json-io.js';
 import { buildShareUrl, readShareUrl, applyShareData } from './share-link.js';
 import { exportPdf } from './pdf-export.js';
@@ -194,9 +194,7 @@ dom.presetSelect.addEventListener('change', async () => {
 });
 
 const presentationLog = createPresentationLog();
-// With masking on, each stored threshold is also plotted on the masking
-// chart against the masker level (defined further down).
-const ui = wireUi({ engine, patientModel, dom, presentationLog, onPointStored: (point, state) => plotMaskingPoint(point, state) });
+const ui = wireUi({ engine, patientModel, dom, presentationLog });
 
 const patientDialog = document.getElementById('patient-dialog');
 const editor = buildThresholdEditor({
@@ -318,41 +316,60 @@ document.getElementById('log-download-btn').addEventListener('click', () => {
 const maskingChart = createMaskingChartStore();
 const maskingChartDialog = document.getElementById('masking-chart-dialog');
 const maskingChartSelect = document.getElementById('masking-chart-series');
+const maskingChartMode = document.getElementById('masking-chart-mode');
 const maskingChartCanvas = document.getElementById('masking-chart-canvas');
+const plotMaskingBtn = document.getElementById('plot-masking-btn');
 let maskingChartKey = null;
 
 function renderMaskingChart() {
   if (!maskingChartDialog.open) return;
-  const keys = maskingChart.keys();
+  const auto = maskingChartMode.value === 'auto';
+  const autoSeries = auto ? autoMaskingSeries(presentationLog.getEntries()) : null;
+  const keys = auto ? [...autoSeries.keys()] : maskingChart.keys();
+  const s = engine.getState();
+  const current = seriesKey(s.testEar, s.testMode, s.freq);
+  if (auto && keys.includes(current)) maskingChartKey = current;
   if (!keys.includes(maskingChartKey)) maskingChartKey = keys[keys.length - 1] ?? null;
   maskingChartSelect.innerHTML = '';
   keys.forEach((k) => maskingChartSelect.appendChild(new Option(seriesLabel(k), k, false, k === maskingChartKey)));
   maskingChartSelect.disabled = !keys.length;
-  const { transducer } = engine.getState();
-  const points = maskingChartKey ? maskingChart.get(maskingChartKey) : [];
-  const guides = maskingChartKey ? guideLevels(maskingChartKey, engine.getStoredPoints(), transducer) : null;
-  drawMaskingChart(maskingChartCanvas, { key: maskingChartKey, points, guides, transducer });
+  const points = !maskingChartKey ? [] : (auto ? autoSeries.get(maskingChartKey).points : maskingChart.get(maskingChartKey));
+  const presentations = auto && maskingChartKey ? autoSeries.get(maskingChartKey).presentations : [];
+  const guides = maskingChartKey ? guideLevels(maskingChartKey, engine.getStoredPoints(), s.transducer) : null;
+  drawMaskingChart(maskingChartCanvas, { key: maskingChartKey, points, presentations, guides, transducer: s.transducer });
   const plateau = findPlateau(points);
   document.getElementById('masking-chart-summary').textContent = !maskingChartKey
-    ? 'Plot a point to start a curve.'
-    : `${points.length} masker level${points.length === 1 ? '' : 's'}. ${plateau ? `Plateau at ${plateau.threshold} dB HL (masker ${plateau.from}–${plateau.to}).${plateau.risesAfter !== null ? ` Threshold rises from masker ${plateau.risesAfter}: possible over-masking.` : ''}` : 'No plateau yet.'}`;
-  document.getElementById('masking-chart-undo-btn').disabled = !maskingChart.canUndo();
-  document.getElementById('masking-chart-clear-btn').disabled = !maskingChartKey;
+    ? (auto ? 'Turn masking on and present tones: the chart builds itself.' : 'Press Plot masking (P) to add a point.')
+    : `${points.length} masker level${points.length === 1 ? '' : 's'} with a ${auto ? 'confirmed ' : ''}threshold. ${plateau ? `Plateau at ${plateau.threshold} dB HL (masker ${plateau.from}–${plateau.to}).${plateau.risesAfter !== null ? ` Threshold rises from masker ${plateau.risesAfter}: possible over-masking.` : ''}` : 'No plateau yet.'}`;
+  document.getElementById('masking-chart-undo-btn').disabled = auto || !maskingChart.canUndo();
+  document.getElementById('masking-chart-clear-btn').disabled = auto || !maskingChartKey;
 }
 
-function plotMaskingPoint(point, state) {
-  if (!state.maskingOn) return;
-  maskingChartKey = maskingChart.plot(point.ear, point.mode, point.freq, state.maskingLevel, point.level, point.noResponse);
+function flashPlotButton(text) {
+  plotMaskingBtn.textContent = text;
+  setTimeout(() => { plotMaskingBtn.textContent = 'Plot masking (P)'; }, 1500);
+}
+
+function plotMasking() {
+  const s = engine.getState();
+  if (!s.maskingOn) {
+    flashPlotButton('Turn masking on first');
+    return;
+  }
+  maskingChartKey = maskingChart.plot(s.testEar, s.testMode, s.freq, s.maskingLevel, s.presentedLevel);
+  flashPlotButton(`Plotted ${s.presentedLevel} at masker ${s.maskingLevel}`);
 }
 
 maskingChart.onChange(renderMaskingChart);
+presentationLog.onChange(renderMaskingChart);
+engine.onChange(renderMaskingChart);
+plotMaskingBtn.addEventListener('click', plotMasking);
 document.getElementById('masking-chart-btn').addEventListener('click', () => {
-  const s = engine.getState();
-  const current = seriesKey(s.testEar, s.testMode, s.freq);
-  if (maskingChart.keys().includes(current)) maskingChartKey = current;
-  maskingChartDialog.showModal();
+  if (maskingChartDialog.open) { maskingChartDialog.close(); return; }
+  maskingChartDialog.show();
   renderMaskingChart();
 });
+maskingChartMode.addEventListener('change', renderMaskingChart);
 maskingChartSelect.addEventListener('change', () => { maskingChartKey = maskingChartSelect.value; renderMaskingChart(); });
 document.getElementById('masking-chart-undo-btn').addEventListener('click', () => maskingChart.undo());
 document.getElementById('masking-chart-clear-btn').addEventListener('click', () => {
@@ -640,7 +657,7 @@ wireKeyboardShortcuts({
   engine,
   onStore: () => {
     startTimerOnce();
-    plotMaskingPoint(engine.storeThreshold(), engine.getState());
+    engine.storeThreshold();
     ui.refreshChart();
   },
   onDelete: () => {
@@ -653,6 +670,7 @@ wireKeyboardShortcuts({
     ui.startPresenting('Keyboard');
   },
   onPresentEnd: () => ui.stopPresenting(),
+  onPlotMasking: plotMasking,
 });
 
 window.pta = { patientModel, engine, ui, editor, patientInfo, timer };

@@ -54,7 +54,7 @@ function blockName(b) {
  * Lowest level with two responses among its first (up to four) ascending
  * presentations. Only tones louder than the one before count as ascending.
  */
-function confirmedThreshold(tones) {
+export function confirmedThreshold(tones) {
   const byLevel = new Map();
   for (let i = 1; i < tones.length; i++) {
     if (tones[i].level <= tones[i - 1].level) continue;
