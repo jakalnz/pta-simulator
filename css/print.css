@@ -2,6 +2,7 @@
   .quick-select,
   .display-bar,
   .app-footer,
+  .patient-view,
   #patient-dialog {
     display: none !important;
   }

@@ -18,6 +18,7 @@ import { parseWildingLink } from './wilding-import.js';
 import { initGutterDrawer } from './gutter-drawer.js';
 import { resolveLibraryUrl, loadCaseFromUrl, saveLibraryConfig, loadLibraryConfig } from './case-library.js';
 import { applySession } from './session-serializer.js';
+import { createPatientView } from './patient-view.js';
 
 initFullscreenLandscape();
 initRotateHint();
@@ -236,6 +237,7 @@ const editor = buildThresholdEditor({
 
 const WILDING_UNLOCK_PASSWORD = '1234';
 let thresholdsLocked = false;
+const patientView = createPatientView({ engine, isExamMode: () => thresholdsLocked });
 let lockClickCount = 0;
 let lockClickResetTimer = null;
 const LOCK_CLICK_THRESHOLD = 5;
@@ -606,6 +608,7 @@ function applyLockState(locked) {
   checkBtn.hidden = true; // the check reveals the answer key
   methodCheckBtn.hidden = true; // teaching feedback is off in exam mode, as in the source simulator
   ui.setExamMode(true);
+  patientView.refresh();
 }
 
 function unlockThresholds() {
@@ -619,6 +622,7 @@ function unlockThresholds() {
   checkBtn.hidden = false;
   methodCheckBtn.hidden = false;
   ui.setExamMode(false);
+  patientView.refresh();
 }
 
 document.getElementById('export-pdf-btn').addEventListener('click', () => {
@@ -752,6 +756,7 @@ if (sharedData) {
 
 wireKeyboardShortcuts({
   engine,
+  onPatientView: () => patientView.toggle(),
   onStore: () => {
     startTimerOnce();
     engine.storeThreshold();

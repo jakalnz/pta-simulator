@@ -233,6 +233,7 @@
     <button id="edit-thresholds-btn">Edit Thresholds</button>
     <button id="export-pdf-btn">Save PDF</button>
     <button id="check-btn" title="Compare your audiogram with this patient's expected results">Check</button>
+    <button id="patient-view-btn" type="button" aria-pressed="false" title="Picture of the patient's head showing where each transducer is (V)">Patient view</button>
     <button id="masking-chart-btn" title="Masking chart: tone threshold against masker level, to document the plateau">Masking chart</button>
     <button id="log-btn" title="Presentation log: every tone presented and whether the patient responded">Log</button>
     <button id="options-btn">Options</button>
@@ -240,6 +241,18 @@
     <button id="info-btn" title="Keyboard shortcuts and credits">Info</button>
     <button id="fullscreen-btn" type="button" aria-pressed="false">Fullscreen</button>
   </div>
+
+  <aside class="patient-view" id="patient-view" aria-label="Patient view">
+    <button type="button" class="patient-view__tab" id="patient-view-tab" aria-expanded="false" aria-controls="patient-view-panel">Patient view</button>
+    <div class="patient-view__panel" id="patient-view-panel">
+      <div class="patient-view__header">
+        <h3>Patient view</h3>
+        <button type="button" id="patient-view-close" aria-label="Close patient view">✕</button>
+      </div>
+      <div class="patient-view__figure" id="patient-view-figure"></div>
+      <div class="patient-view__caption" id="patient-view-caption"></div>
+    </div>
+  </aside>
 
   <div class="gutter-drawer" id="gutter-drawer">
     <button type="button" class="gutter-drawer__tab" id="gutter-drawer-tab" aria-expanded="false" aria-controls="gutter-drawer-panel">
@@ -436,6 +449,7 @@
         <tr><td><kbd>Space</kbd> (hold)</td><td>Present tone</td></tr>
         <tr><td><kbd>R</kbd> / <kbd>L</kbd></td><td>Test right / left ear</td></tr>
         <tr><td><kbd>B</kbd></td><td>Switch AC / BC</td></tr>
+        <tr><td><kbd>V</kbd></td><td>Show / hide the patient view (what is on the head)</td></tr>
         <tr><td><kbd>I</kbd></td><td>Switch headphones / inserts</td></tr>
         <tr><td><kbd>S</kbd></td><td>Store threshold at current point</td></tr>
         <tr><td><kbd>N</kbd></td><td>Store no response at the current level</td></tr>

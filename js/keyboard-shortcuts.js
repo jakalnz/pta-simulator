@@ -1,4 +1,4 @@
-export function wireKeyboardShortcuts({ engine, onStore, onDelete, onLevelChange, onPresentStart, onPresentEnd, onPlotMasking, onNoResponse, onUll, onHelp }) {
+export function wireKeyboardShortcuts({ engine, onStore, onDelete, onLevelChange, onPresentStart, onPresentEnd, onPlotMasking, onNoResponse, onUll, onHelp, onPatientView }) {
   function isTextInput(el) {
     return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
   }
@@ -78,6 +78,10 @@ export function wireKeyboardShortcuts({ engine, onStore, onDelete, onLevelChange
       case 'u':
       case 'U':
         onUll?.();
+        break;
+      case 'v':
+      case 'V':
+        onPatientView?.();
         break;
       case '?':
         onHelp?.();

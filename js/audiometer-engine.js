@@ -135,15 +135,19 @@ export function createAudiometerEngine(patientModel) {
   // above / out of the ear, as estimated in Wilding's PTA_Sim.
   const MISPLACED_LOSS = 40;
 
-  function effectivePlacement() {
-    if (state.placementMode === 'manual') return state.placement;
-    const other = OTHER_EAR[state.testEar];
-    if (state.testMode === 'AC') return { headset: 'on', cover: { right: 'over', left: 'over' }, bc: 'off' };
+  // Where automatic mode puts the transducers for a test.
+  function idealPlacement({ testEar, testMode, maskingOn } = state) {
+    const other = OTHER_EAR[testEar];
+    if (testMode === 'AC') return { headset: 'on', cover: { right: 'over', left: 'over' }, bc: 'off' };
     return {
       headset: 'on',
-      cover: { [state.testEar]: 'above', [other]: state.maskingOn ? 'over' : 'above' },
-      bc: state.testEar,
+      cover: { [testEar]: 'above', [other]: maskingOn ? 'over' : 'above' },
+      bc: testEar,
     };
+  }
+
+  function effectivePlacement() {
+    return state.placementMode === 'manual' ? state.placement : idealPlacement();
   }
 
   // Level reaching each cochlea from the AC earphone labelled `channelEar`
@@ -413,6 +417,8 @@ export function createAudiometerEngine(patientModel) {
     presentTone,
     setPlacementMode,
     setPlacement,
+    idealPlacement,
+    effectivePlacement,
     describePlacement,
     placementIssues,
     storeThreshold,
