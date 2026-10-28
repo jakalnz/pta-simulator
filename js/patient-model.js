@@ -25,6 +25,13 @@ function flatRow(value) {
   return row;
 }
 
+// Row from { freq: dB } with any frequency not listed at 0.
+function rowFrom(values) {
+  const row = {};
+  FREQUENCIES.forEach((f) => { row[f] = values[f] ?? 0; });
+  return row;
+}
+
 function slopingRow(base, highBoost) {
   const row = {};
   FREQUENCIES.forEach((f, i) => {
@@ -131,6 +138,31 @@ export const PRESETS = {
   unilateral: {
     label: 'Unilateral Severe (left) / Normal (right)',
     generate: () => buildPatient({ right: flatRow(10), left: flatRow(80) }),
+  },
+  // Right otosclerosis: normal cochlea, a conductive loss that is greatest at
+  // low frequencies, and a Carhart notch (BC transmission loss peaking at
+  // 2 kHz) so BC dips without any cochlear loss. Left ear normal.
+  otosclerosis: {
+    label: 'Otosclerosis (right) with Carhart notch',
+    generate: () => {
+      const p = buildPatient({ right: flatRow(10), left: flatRow(10) });
+      p.right.ipsiConductive = rowFrom({ 250: 40, 500: 40, 750: 35, 1000: 35, 1500: 30, 2000: 25, 3000: 25, 4000: 20, 6000: 15, 8000: 15 });
+      p.right.bcAttenuation = rowFrom({ 500: 5, 750: 5, 1000: 10, 1500: 10, 2000: 15, 3000: 10, 4000: 5 });
+      return p;
+    },
+  },
+  // Right superior semicircular canal dehiscence (third window): normal
+  // cochlea, a low-frequency AC loss (conductive row) and a BC gain
+  // (negative BC transmission loss), giving a low-frequency air-bone gap
+  // with supranormal BC. The middle ear is normal (Type A, reflexes present).
+  sscd: {
+    label: 'SSCD (right) – low-frequency air–bone gap, supranormal BC',
+    generate: () => {
+      const p = buildPatient({ right: flatRow(0), left: flatRow(0) });
+      p.right.ipsiConductive = rowFrom({ 250: 30, 500: 25, 750: 15, 1000: 10 });
+      p.right.bcAttenuation = rowFrom({ 250: -10, 500: -10, 750: -5, 1000: -5 });
+      return p;
+    },
   },
 };
 
