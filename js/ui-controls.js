@@ -1,10 +1,11 @@
 import { formatDb, formatFreq, OTHER_EAR } from './utils.js';
 import { renderAudiogram } from './audiogram-chart.js';
+import { drawAnnotations } from './annotations.js';
 import { isMaskingRequired } from './masking-logic.js';
 import { createTonePlayer } from './tone-player.js';
 import { createNoisePlayer } from './noise-player.js';
 
-export function wireUi({ engine, patientModel, dom, presentationLog }) {
+export function wireUi({ engine, patientModel, dom, presentationLog, annotations }) {
   let chartView = 'combined';
   let soundOn = true;
   let hintsOn = true;
@@ -116,19 +117,32 @@ export function wireUi({ engine, patientModel, dom, presentationLog }) {
     });
   }
 
-  function refreshChart() {
+  // Notes are tagged with the chart they were drawn on: 'combined', 'right'
+  // or 'left'. The combined chart (and the PDF) shows them all; each split
+  // chart shows combined notes plus its own ear's.
+  function renderWithNotes(canvas, points, views, preview) {
+    renderAudiogram(canvas, points);
+    const items = (annotations?.items() ?? []).concat(preview ? [preview] : []).filter((a) => !views || views.includes(a.view));
+    drawAnnotations(canvas.getContext('2d'), items, canvas.clientWidth || 600, canvas.clientHeight || 400);
+  }
+
+  function refreshChart(preview = null) {
     const points = engine.getStoredPoints();
-    renderAudiogram(dom.canvasCombinedHidden, points);
+    renderWithNotes(dom.canvasCombinedHidden, points, null, null);
     if (chartView === 'split') {
       dom.wrapLeft.hidden = false;
       dom.chartViewEl.classList.add('split');
-      renderAudiogram(dom.canvasRight, points.filter((p) => p.ear === 'right'));
-      renderAudiogram(dom.canvasLeft, points.filter((p) => p.ear === 'left'));
+      renderWithNotes(dom.canvasRight, points.filter((p) => p.ear === 'right'), ['combined', 'right'], preview);
+      renderWithNotes(dom.canvasLeft, points.filter((p) => p.ear === 'left'), ['combined', 'left'], preview);
     } else {
       dom.wrapLeft.hidden = true;
       dom.chartViewEl.classList.remove('split');
-      renderAudiogram(dom.canvasRight, points);
+      renderWithNotes(dom.canvasRight, points, null, preview);
     }
+  }
+
+  function getChartView() {
+    return chartView;
   }
 
   // The simulated patient responds after a random latency drawn per
@@ -326,5 +340,5 @@ export function wireUi({ engine, patientModel, dom, presentationLog }) {
   refreshDisplayBar();
   refreshChart();
 
-  return { refreshChart, refreshDisplayBar, startPresenting, stopPresenting, setExamMode };
+  return { refreshChart, refreshDisplayBar, startPresenting, stopPresenting, setExamMode, getChartView };
 }

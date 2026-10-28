@@ -5,6 +5,7 @@ import { buildThresholdEditor } from './threshold-editor.js';
 import { createPresentationLog } from './presentation-log.js';
 import { checkAudiogram } from './audiogram-check.js';
 import { reviewMethod } from './method-review.js';
+import { createAnnotationStore, attachAnnotator, buildAnnotationToolbar, drawAnnotations } from './annotations.js';
 import { MASKING_PROTOCOLS, getMaskingProtocol, setMaskingProtocol } from './masking-protocol.js';
 import { createMaskingChartStore, drawMaskingChart, guideLevels, seriesKey, seriesLabel, findPlateau, autoMaskingSeries } from './masking-chart.js';
 import { exportJson, importJson } from './json-io.js';
@@ -195,7 +196,35 @@ dom.presetSelect.addEventListener('change', async () => {
 });
 
 const presentationLog = createPresentationLog();
-const ui = wireUi({ engine, patientModel, dom, presentationLog });
+const audiogramNotes = createAnnotationStore();
+const ui = wireUi({ engine, patientModel, dom, presentationLog, annotations: audiogramNotes });
+
+// ── Audiogram annotations ──
+const annotateBtn = document.getElementById('annotate-btn');
+const audiogramToolbar = document.getElementById('audiogram-annotation-toolbar');
+const audiogramNoteSettings = buildAnnotationToolbar(audiogramToolbar, audiogramNotes);
+let annotatingAudiogram = false;
+annotateBtn.addEventListener('click', () => {
+  annotatingAudiogram = !annotatingAudiogram;
+  annotateBtn.setAttribute('aria-pressed', String(annotatingAudiogram));
+  audiogramToolbar.hidden = !annotatingAudiogram;
+  [dom.canvasRight, dom.canvasLeft].forEach((c) => c.classList.toggle('annotating', annotatingAudiogram));
+});
+audiogramNotes.onChange(() => ui.refreshChart());
+attachAnnotator(dom.canvasRight, {
+  store: audiogramNotes,
+  isActive: () => annotatingAudiogram,
+  getSettings: audiogramNoteSettings,
+  view: () => (ui.getChartView() === 'split' ? 'right' : 'combined'),
+  redraw: (preview) => ui.refreshChart(preview),
+});
+attachAnnotator(dom.canvasLeft, {
+  store: audiogramNotes,
+  isActive: () => annotatingAudiogram,
+  getSettings: audiogramNoteSettings,
+  view: 'left',
+  redraw: (preview) => ui.refreshChart(preview),
+});
 
 const patientDialog = document.getElementById('patient-dialog');
 const editor = buildThresholdEditor({
@@ -321,6 +350,9 @@ const maskingChartMode = document.getElementById('masking-chart-mode');
 const maskingChartCanvas = document.getElementById('masking-chart-canvas');
 const plotMaskingBtn = document.getElementById('plot-masking-btn');
 let maskingChartKey = null;
+const maskingNotes = createAnnotationStore(); // items tagged with their curve key
+let annotatingMaskingChart = false;
+let maskingNotePreview = null;
 
 function renderMaskingChart() {
   if (!maskingChartDialog.open) return;
@@ -338,6 +370,8 @@ function renderMaskingChart() {
   const presentations = auto && maskingChartKey ? autoSeries.get(maskingChartKey).presentations : [];
   const guides = maskingChartKey ? guideLevels(maskingChartKey, engine.getStoredPoints(), s.transducer) : null;
   drawMaskingChart(maskingChartCanvas, { key: maskingChartKey, points, presentations, guides, transducer: s.transducer });
+  const notes = maskingNotes.items().concat(maskingNotePreview ? [maskingNotePreview] : []).filter((n) => n.view === maskingChartKey);
+  drawAnnotations(maskingChartCanvas.getContext('2d'), notes, maskingChartCanvas.clientWidth || 640, maskingChartCanvas.clientHeight || 420);
   const plateau = findPlateau(points);
   document.getElementById('masking-chart-summary').textContent = !maskingChartKey
     ? (auto ? 'Turn masking on and present tones: the chart builds itself.' : 'Press Plot masking (P) to add a point.')
@@ -362,6 +396,21 @@ function plotMasking() {
 }
 
 maskingChart.onChange(renderMaskingChart);
+maskingNotes.onChange(renderMaskingChart);
+const maskingNoteSettings = buildAnnotationToolbar(document.getElementById('masking-annotation-toolbar'), maskingNotes);
+document.getElementById('masking-annotate-btn').addEventListener('click', (e) => {
+  annotatingMaskingChart = !annotatingMaskingChart;
+  e.currentTarget.setAttribute('aria-pressed', String(annotatingMaskingChart));
+  document.getElementById('masking-annotation-toolbar').hidden = !annotatingMaskingChart;
+  maskingChartCanvas.classList.toggle('annotating', annotatingMaskingChart);
+});
+attachAnnotator(maskingChartCanvas, {
+  store: maskingNotes,
+  isActive: () => annotatingMaskingChart && maskingChartKey !== null,
+  getSettings: maskingNoteSettings,
+  view: () => maskingChartKey,
+  redraw: (preview) => { maskingNotePreview = preview; renderMaskingChart(); maskingNotePreview = null; },
+});
 presentationLog.onChange(renderMaskingChart);
 engine.onChange(renderMaskingChart);
 plotMaskingBtn.addEventListener('click', plotMasking);

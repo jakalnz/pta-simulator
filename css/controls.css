@@ -376,6 +376,23 @@
   height: 320px;
 }
 
+.annotation-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.annotation-toolbar button[aria-pressed="true"] {
+  background: var(--color-text, #222);
+  color: #fff;
+}
+
+canvas.annotating {
+  cursor: crosshair;
+  touch-action: none;
+}
+
 .occlusion-hint {
   font-size: 0.75rem;
   color: #555;

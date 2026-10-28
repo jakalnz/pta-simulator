@@ -89,7 +89,9 @@
         <button data-chartview="combined" aria-pressed="true">Combined</button>
         <button data-chartview="split" aria-pressed="false">Right / Left</button>
       </div>
+      <button id="annotate-btn" type="button" class="switch-btn" aria-pressed="false" title="Draw notes on the audiogram (included in Save PDF)">Annotate</button>
     </div>
+    <div class="row" id="audiogram-annotation-toolbar" hidden></div>
     <div class="chart-view" id="chart-view">
       <div class="audiogram-canvas-wrap" id="wrap-right">
         <canvas id="audiogram-canvas-right"></canvas>
@@ -337,6 +339,10 @@
       <label>Curve <select id="masking-chart-series"></select></label>
     </div>
     <p id="masking-chart-summary" class="log-summary"></p>
+    <div class="row log-actions">
+      <button id="masking-annotate-btn" type="button" class="switch-btn" aria-pressed="false" title="Draw notes on this masking curve (included in Save PNG)">Annotate</button>
+      <div id="masking-annotation-toolbar" hidden></div>
+    </div>
     <canvas id="masking-chart-canvas" class="masking-chart-canvas"></canvas>
     <div class="row log-actions">
       <button id="masking-chart-undo-btn" type="button">Undo point</button>
