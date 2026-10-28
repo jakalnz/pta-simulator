@@ -24,6 +24,8 @@ const COLUMNS = [
   ['Ended by', (e) => e.endReason ?? ''],
   ['Input', (e) => e.input],
   ['Sound', (e) => (e.soundOn ? 'On' : 'Off')],
+  ['Placement', (e) => e.placement ?? ''],
+  ['Placement issues', (e) => (e.placementIssues ?? []).join('; ')],
 ];
 
 function seconds(ms) {
@@ -70,6 +72,8 @@ export function createPresentationLog({ now = () => performance.now(), wallNow =
       endReason: null,
       input,
       soundOn: settings.soundOn,
+      placement: settings.placement,
+      placementIssues: settings.placementIssues ?? [],
       // Raw values for the method review (not CSV columns).
       earKey: settings.ear,
       mode: settings.mode,

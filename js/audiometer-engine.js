@@ -35,6 +35,16 @@ export function createAudiometerEngine(patientModel) {
     lastResponse: null,
     noResponse: false,
     cochleaResponse: { right: null, left: null },
+    // 'auto': transducers are always where they should be (AC: headset on
+    // both ears; BC: bone conductor on the test side, test ear uncovered,
+    // non-test ear covered only while masking). 'manual': the student
+    // places them (see setPlacement).
+    placementMode: 'auto',
+    placement: {
+      headset: 'on',                         // 'on' | 'swapped' | 'off'
+      cover: { right: 'over', left: 'over' }, // earphone 'over' (in) the ear, or 'above' (out of) it
+      bc: 'off',                             // 'right' | 'left' | 'off'
+    },
   };
 
   const lastCochleaLevel = { right: -10, left: -10 };
@@ -121,50 +131,73 @@ export function createAudiometerEngine(patientModel) {
     return Math.random() * width - width / 2;
   }
 
+  // Extra loss (dB) for a transducer that is off the patient or resting
+  // above / out of the ear, as estimated in Wilding's PTA_Sim.
+  const MISPLACED_LOSS = 40;
+
+  function effectivePlacement() {
+    if (state.placementMode === 'manual') return state.placement;
+    const other = OTHER_EAR[state.testEar];
+    if (state.testMode === 'AC') return { headset: 'on', cover: { right: 'over', left: 'over' }, bc: 'off' };
+    return {
+      headset: 'on',
+      cover: { [state.testEar]: 'above', [other]: state.maskingOn ? 'over' : 'above' },
+      bc: state.testEar,
+    };
+  }
+
+  // Level reaching each cochlea from the AC earphone labelled `channelEar`
+  // (Channel 1 = test ear's earphone, Channel 2 = the other one): straight
+  // through the ear it sits on (minus that ear's conductive component) and
+  // across the head to the other cochlea (minus interaural attenuation).
+  function deliverAc(level, channelEar, placement) {
+    const { transducer, freq } = state;
+    const physical = placement.headset === 'swapped' ? OTHER_EAR[channelEar] : channelEar;
+    const misplaced = placement.headset === 'off' || placement.cover[physical] === 'above';
+    const at = level - (misplaced ? MISPLACED_LOSS : 0);
+    return {
+      [physical]: at - patientModel.getParam(physical, 'ipsiConductive', freq),
+      [OTHER_EAR[physical]]: at - patientModel.getCrossIAA(transducer, freq),
+    };
+  }
+
+  // BC reaches both cochleae equally, less each one's BC transmission loss,
+  // plus the occlusion effect in any ear covered by an earphone.
+  function deliverBc(level, placement) {
+    const { transducer, freq } = state;
+    const at = level - (placement.bc === 'off' ? MISPLACED_LOSS : 0);
+    const covered = (ear) => placement.headset !== 'off' && placement.cover[ear] === 'over';
+    const out = {};
+    ['right', 'left'].forEach((ear) => {
+      out[ear] = at - patientModel.getParam(ear, 'bcAttenuation', freq)
+        + (covered(ear) ? patientModel.getOcclusion(transducer, freq) : 0);
+    });
+    return out;
+  }
+
   /**
    * Pure evaluation — no random-history side effects beyond drawing a fresh
    * jitter sample each call, matching the source simulator calling update()
-   * fresh on every presentation.
+   * fresh on every presentation. Each cochlea responds if the tone reaching
+   * it is at or above its threshold, raised by any masker reaching it (which
+   * is how the non-test ear is masked, and how over-masking happens).
    */
   function evaluateResponse() {
     const { testEar, testMode, transducer, freq, presentedLevel, maskingOn, maskingLevel } = state;
     const otherEar = OTHER_EAR[testEar];
+    const placement = effectivePlacement();
 
-    const cross = testMode === 'AC' ? patientModel.getCrossIAA(transducer, freq) : 0;
-    // The masker always reaches the non-test ear through the AC transducer,
-    // so it crosses back to the test cochlea by the AC interaural attenuation
-    // even when the tone itself is BC.
-    const maskerCross = patientModel.getCrossIAA(transducer, freq);
-    const ipsiConductiveTest = testMode === 'AC' ? patientModel.getParam(testEar, 'ipsiConductive', freq) : 0;
-    const ipsiConductiveOther = testMode === 'AC' ? patientModel.getParam(otherEar, 'ipsiConductive', freq) : 0;
-
-    // BC: each cochlea can have its own BC attenuation, and with masking on
-    // the non-test ear is covered by the masking earphone, so the occlusion
-    // effect for that transducer raises the BC tone reaching its cochlea.
-    const bcAttenuationTest = testMode === 'BC' ? patientModel.getParam(testEar, 'bcAttenuation', freq) : 0;
-    const bcAttenuationOther = testMode === 'BC' ? patientModel.getParam(otherEar, 'bcAttenuation', freq) : 0;
-    const occlusionOther = testMode === 'BC' && maskingOn ? patientModel.getOcclusion(transducer, freq) : 0;
-
-    const testCochleaLevel = presentedLevel - ipsiConductiveTest - bcAttenuationTest;
-    const contraCochleaLevel = presentedLevel - cross - bcAttenuationOther + occlusionOther;
+    const tone = testMode === 'AC' ? deliverAc(presentedLevel, testEar, placement) : deliverBc(presentedLevel, placement);
+    const masker = maskingOn ? deliverAc(maskingLevel, otherEar, placement) : null;
 
     const testThresholdBase = patientModel.getParam(testEar, 'cochlear', freq);
     const contraThresholdBase = patientModel.getParam(otherEar, 'cochlear', freq);
+    const effectiveTestThreshold = masker ? Math.max(testThresholdBase, masker[testEar]) : testThresholdBase;
+    const effectiveContraThreshold = masker ? Math.max(contraThresholdBase, masker[otherEar]) : contraThresholdBase;
+    const overmasked = effectiveTestThreshold > testThresholdBase;
 
-    let effectiveTestThreshold = testThresholdBase;
-    let effectiveContraThreshold = contraThresholdBase;
-    let overmasked = false;
-
-    if (maskingOn) {
-      const maskerAtContraCochlea = maskingLevel - ipsiConductiveOther;
-      const maskerCrossToTestCochlea = maskingLevel - maskerCross;
-      effectiveContraThreshold = Math.max(contraThresholdBase, maskerAtContraCochlea);
-      if (maskerCrossToTestCochlea > testThresholdBase) {
-        effectiveTestThreshold = maskerCrossToTestCochlea;
-        overmasked = true;
-      }
-    }
-
+    const testCochleaLevel = tone[testEar];
+    const contraCochleaLevel = tone[otherEar];
     const testResponds = testCochleaLevel >= (effectiveTestThreshold + ascDescOffset(testEar, freq, testCochleaLevel) + psychJitter(testEar, freq));
     const contraResponds = contraCochleaLevel >= (effectiveContraThreshold + ascDescOffset(otherEar, freq, contraCochleaLevel) + psychJitter(otherEar, freq));
 
@@ -180,9 +213,51 @@ export function createAudiometerEngine(patientModel) {
       contraCochleaLevel,
       effectiveTestThreshold,
       effectiveContraThreshold,
-      maskerAtContraCochlea: maskingOn ? maskingLevel - ipsiConductiveOther : null,
-      maskerCrossToTestCochlea: maskingOn && overmasked ? maskingLevel - maskerCross : null,
+      maskerAtContraCochlea: masker ? masker[otherEar] : null,
+      maskerCrossToTestCochlea: masker && overmasked ? masker[testEar] : null,
     };
+  }
+
+  function setPlacementMode(mode) {
+    state.placementMode = mode === 'manual' ? 'manual' : 'auto';
+    emit();
+  }
+
+  // Partial update, e.g. { headset: 'swapped' } or { cover: { left: 'above' } }.
+  function setPlacement(change) {
+    state.placement = {
+      ...state.placement,
+      ...change,
+      cover: { ...state.placement.cover, ...(change.cover ?? {}) },
+    };
+    emit();
+  }
+
+  // Short description of where the transducers are, for the log.
+  function describePlacement() {
+    if (state.placementMode === 'auto') return 'Automatic';
+    const p = state.placement;
+    const ear = (e) => (p.headset === 'off' ? 'off' : (p.cover[e] === 'over' ? 'covered' : 'uncovered'));
+    return `Headset ${p.headset}; R ${ear('right')}, L ${ear('left')}; BC ${p.bc}`;
+  }
+
+  // Placement problems for the current test, for the log and method review.
+  function placementIssues() {
+    if (state.placementMode === 'auto') return [];
+    const p = state.placement;
+    const { testEar, testMode, maskingOn } = state;
+    const other = OTHER_EAR[testEar];
+    const covered = (e) => p.headset !== 'off' && p.cover[e] === 'over';
+    const issues = [];
+    if (p.headset === 'swapped' && (testMode === 'AC' || maskingOn)) issues.push('earphones on the wrong ears');
+    if (testMode === 'AC' && !covered(testEar)) issues.push('test earphone not on the ear');
+    if (testMode === 'BC') {
+      if (p.bc === 'off') issues.push('bone conductor not fitted');
+      else if (p.bc !== testEar) issues.push('bone conductor on the non-test side');
+      if (covered(testEar)) issues.push('test ear covered during BC (occlusion effect)');
+    }
+    if (maskingOn && p.headset !== 'swapped' && !covered(other)) issues.push('masking earphone not on the non-test ear');
+    return issues;
   }
 
   function presentTone() {
@@ -336,6 +411,10 @@ export function createAudiometerEngine(patientModel) {
     adjustMaskingLevel,
     evaluateResponse,
     presentTone,
+    setPlacementMode,
+    setPlacement,
+    describePlacement,
+    placementIssues,
     storeThreshold,
     toggleUll,
     getStoredPoints,

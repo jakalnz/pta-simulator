@@ -460,6 +460,41 @@ methodCheckBtn.addEventListener('click', () => {
 });
 document.getElementById('close-method-dialog-btn').addEventListener('click', () => methodDialog.close());
 
+// ── Transducer placement ──
+const placementModeSelect = document.getElementById('placement-mode-select');
+const placementDetails = document.getElementById('placement-details');
+const placementSelects = {
+  headset: document.getElementById('placement-headset'),
+  right: document.getElementById('placement-right'),
+  left: document.getElementById('placement-left'),
+  bc: document.getElementById('placement-bc'),
+};
+function syncPlacementControls() {
+  const { placementMode, placement } = engine.getState();
+  placementModeSelect.value = placementMode;
+  placementDetails.hidden = placementMode !== 'manual';
+  placementSelects.headset.value = placement.headset;
+  placementSelects.right.value = placement.cover.right;
+  placementSelects.left.value = placement.cover.left;
+  placementSelects.bc.value = placement.bc;
+  placementSelects.right.disabled = placement.headset === 'off';
+  placementSelects.left.disabled = placement.headset === 'off';
+}
+try {
+  const savedPlacementMode = localStorage.getItem('pta-placement-mode');
+  if (savedPlacementMode) engine.setPlacementMode(savedPlacementMode);
+} catch { /* storage unavailable: keep automatic */ }
+placementModeSelect.addEventListener('change', () => {
+  engine.setPlacementMode(placementModeSelect.value);
+  try { localStorage.setItem('pta-placement-mode', placementModeSelect.value); } catch { /* ignore */ }
+  syncPlacementControls();
+});
+placementSelects.headset.addEventListener('change', () => { engine.setPlacement({ headset: placementSelects.headset.value }); syncPlacementControls(); });
+placementSelects.right.addEventListener('change', () => engine.setPlacement({ cover: { right: placementSelects.right.value } }));
+placementSelects.left.addEventListener('change', () => engine.setPlacement({ cover: { left: placementSelects.left.value } }));
+placementSelects.bc.addEventListener('change', () => engine.setPlacement({ bc: placementSelects.bc.value }));
+syncPlacementControls();
+
 const maskingProtocolSelect = document.getElementById('masking-protocol-select');
 Object.entries(MASKING_PROTOCOLS).forEach(([id, p]) => maskingProtocolSelect.appendChild(new Option(p.label, id, false, id === getMaskingProtocol())));
 maskingProtocolSelect.addEventListener('change', () => {

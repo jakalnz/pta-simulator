@@ -191,6 +191,8 @@ export function wireUi({ engine, patientModel, dom, presentationLog, annotations
       maskingOn: s.maskingOn,
       maskingLevel: s.maskingLevel,
       soundOn,
+      placement: engine.describePlacement(),
+      placementIssues: engine.placementIssues(),
     }, input);
 
     const result = engine.presentTone();

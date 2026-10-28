@@ -383,6 +383,10 @@
   align-items: center;
 }
 
+.annotation-toolbar[hidden] {
+  display: none;
+}
+
 .annotation-toolbar button[aria-pressed="true"] {
   background: var(--color-text, #222);
   color: #fff;
@@ -391,6 +395,20 @@
 canvas.annotating {
   cursor: crosshair;
   touch-action: none;
+}
+
+.placement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 6px 12px;
+  margin: 6px 0;
+}
+
+.placement-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  gap: 2px;
 }
 
 .occlusion-hint {

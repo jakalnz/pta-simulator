@@ -122,6 +122,38 @@
         <div class="legend__item"><span style="color:#d21f1f">U</span> / <span style="color:#1f5fd2">U</span> ULL (right / left)</div>
       </div>
     </details>
+    <details class="placement-details" id="placement-details" open hidden>
+      <summary>Transducer placement</summary>
+      <div class="placement-grid">
+        <label>Headset
+          <select id="placement-headset">
+            <option value="on">On (red right, blue left)</option>
+            <option value="swapped">On, swapped (red left, blue right)</option>
+            <option value="off">Off the patient</option>
+          </select>
+        </label>
+        <label>Right earphone
+          <select id="placement-right">
+            <option value="over">Over / in the ear</option>
+            <option value="above">Above / out of the ear</option>
+          </select>
+        </label>
+        <label>Left earphone
+          <select id="placement-left">
+            <option value="over">Over / in the ear</option>
+            <option value="above">Above / out of the ear</option>
+          </select>
+        </label>
+        <label>Bone conductor
+          <select id="placement-bc">
+            <option value="off">Off</option>
+            <option value="right">Right mastoid</option>
+            <option value="left">Left mastoid</option>
+          </select>
+        </label>
+      </div>
+      <p class="occlusion-hint">Channel 1 (tone) uses the test ear's earphone and Channel 2 (masker) the other one, wherever they actually sit. An earphone off the patient or above the ear loses about 40 dB. A covered ear gains the BC occlusion effect, so keep the test ear uncovered for BC and cover the non-test ear with the masking earphone when masking.</p>
+    </details>
     <details class="visual-details" id="visual-details">
       <summary>Visual — Cochlea Levels</summary>
       <table class="visual-table">
@@ -376,6 +408,14 @@
       <button id="sound-switch" class="switch-btn" type="button" aria-pressed="true">Tone: On</button>
       <button id="direction-switch" class="switch-btn" type="button" aria-pressed="true">Up = Louder</button>
       <button id="hints-switch" class="switch-btn" type="button" aria-pressed="true">Hints: On</button>
+    </div>
+    <div class="row">
+      <label title="Automatic keeps the transducers in the ideal position for each test. Manual makes students place the headset, each earphone and the bone conductor themselves, with realistic effects of mistakes.">Transducer placement
+        <select id="placement-mode-select">
+          <option value="auto">Automatic (ideal placement)</option>
+          <option value="manual">Manual (student places transducers)</option>
+        </select>
+      </label>
     </div>
     <div class="row">
       <label title="Which rules the Check button uses to decide where masking is needed, and the IAA for the masking chart's guide lines. Check method accepts plateau and step masking either way.">Masking rules

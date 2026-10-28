@@ -320,6 +320,16 @@ export function reviewMethod(entries, storedPoints = []) {
     }
   });
 
+  // ── Transducer placement (manual placement only) ──
+  const issueTones = new Map();
+  tones.forEach((e) => (e.placementIssues ?? []).forEach((issue) => {
+    if (!issueTones.has(issue)) issueTones.set(issue, []);
+    issueTones.get(issue).push(e.number);
+  }));
+  issueTones.forEach((numbers, issue) => {
+    add('Placement', 'Review', `${issue[0].toUpperCase()}${issue.slice(1)} at ${nums(numbers)}.`);
+  });
+
   // ── Timing ──
   const short = tones.filter((e) => e.durationMs < DURATION_RANGE_MS[0]).map((e) => e.number);
   const long = tones.filter((e) => e.durationMs > DURATION_RANGE_MS[1]).map((e) => e.number);
