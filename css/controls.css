@@ -349,7 +349,8 @@
 }
 
 #log-dialog,
-#check-dialog {
+#check-dialog,
+#method-dialog {
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
   padding: 16px;
@@ -394,6 +395,9 @@
 .log-table td.status-incorrect { color: #b3261e; font-weight: 600; }
 .log-table td.status-missing { color: #a15c00; font-weight: 600; }
 .log-table td.status-info { color: #555; }
+.log-table td.status-pass { color: #1f8a2f; font-weight: 600; }
+.log-table td.status-review { color: #b3261e; font-weight: 600; }
+.log-table td.status-incomplete { color: #a15c00; font-weight: 600; }
 .log-table td.check-note { white-space: normal; min-width: 240px; }
 
 .log-actions {

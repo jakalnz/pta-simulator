@@ -70,6 +70,10 @@ export function createPresentationLog({ now = () => performance.now(), wallNow =
       endReason: null,
       input,
       soundOn: settings.soundOn,
+      // Raw values for the method review (not CSV columns).
+      earKey: settings.ear,
+      mode: settings.mode,
+      maskerLevel: settings.maskingOn ? settings.maskingLevel : null,
     };
     entries.push(entry);
     active = entry;

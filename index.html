@@ -289,6 +289,21 @@
     </div>
   </dialog>
 
+  <dialog id="method-dialog">
+    <h3>Method Review</h3>
+    <p class="log-note">Reviews your technique from the presentation log: familiarisation, step sizes, ascending confirmation (2 responses on ascending presentations at the same level), frequency order, BC side, masking plateaus, tone length and gaps. It uses only what you did and saw, not the patient's thresholds; use Check for accuracy. Reset the log when you start a new patient. These are teaching guidelines: follow your tutor's protocol where it differs.</p>
+    <p id="method-summary" class="log-summary"></p>
+    <div class="log-table-scroll">
+      <table id="method-table" class="log-table">
+        <thead><tr><th>Area</th><th>Result</th><th>Details</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="row log-actions">
+      <button id="close-method-dialog-btn" type="button">Close</button>
+    </div>
+  </dialog>
+
   <dialog id="log-dialog">
     <h3>Presentation Log</h3>
     <p class="log-note">Every tone you present, with its settings at onset, how long you held it, the gap since the previous tone (ISI) and whether the response light came on. This log is kept for this session only: download the CSV before closing or reloading.</p>
@@ -301,6 +316,7 @@
     </div>
     <div class="row log-actions">
       <button id="log-download-btn" type="button">Download CSV</button>
+      <button id="method-check-btn" type="button" title="Review your testing technique from this log">Check method</button>
       <button id="log-reset-btn" type="button">Reset log</button>
       <button id="close-log-dialog-btn" type="button">Close</button>
     </div>

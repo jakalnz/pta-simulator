@@ -4,6 +4,7 @@ import { wireUi } from './ui-controls.js';
 import { buildThresholdEditor } from './threshold-editor.js';
 import { createPresentationLog } from './presentation-log.js';
 import { checkAudiogram } from './audiogram-check.js';
+import { reviewMethod } from './method-review.js';
 import { exportJson, importJson } from './json-io.js';
 import { buildShareUrl, readShareUrl, applyShareData } from './share-link.js';
 import { exportPdf } from './pdf-export.js';
@@ -306,6 +307,30 @@ document.getElementById('log-download-btn').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
+const methodDialog = document.getElementById('method-dialog');
+const methodCheckBtn = document.getElementById('method-check-btn');
+methodCheckBtn.addEventListener('click', () => {
+  const findings = reviewMethod(presentationLog.getEntries(), engine.getStoredPoints());
+  const tbody = document.querySelector('#method-table tbody');
+  tbody.innerHTML = '';
+  findings.forEach((f) => {
+    const tr = document.createElement('tr');
+    [f.area, f.status, f.message].forEach((value, i) => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      if (i === 1) td.className = `status-${f.status.toLowerCase()}`;
+      if (i === 2) td.className = 'check-note';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  const count = (s) => findings.filter((f) => f.status === s).length;
+  document.getElementById('method-summary').textContent =
+    `${count('Pass')} pass, ${count('Review')} to review, ${count('Incomplete')} incomplete.`;
+  methodDialog.showModal();
+});
+document.getElementById('close-method-dialog-btn').addEventListener('click', () => methodDialog.close());
+
 const checkDialog = document.getElementById('check-dialog');
 const checkBtn = document.getElementById('check-btn');
 checkBtn.addEventListener('click', () => {
@@ -403,6 +428,7 @@ function applyLockState(locked) {
   examModeToggle.checked = true;
   examModeToggle.disabled = true;
   checkBtn.hidden = true; // the check reveals the answer key
+  methodCheckBtn.hidden = true; // teaching feedback is off in exam mode, as in the source simulator
   ui.setExamMode(true);
 }
 
@@ -415,6 +441,7 @@ function unlockThresholds() {
   examModeToggle.checked = false;
   examModeToggle.disabled = false;
   checkBtn.hidden = false;
+  methodCheckBtn.hidden = false;
   ui.setExamMode(false);
 }
 
