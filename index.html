@@ -193,6 +193,7 @@
     <button id="edit-thresholds-btn">Edit Thresholds</button>
     <button id="export-pdf-btn">Save PDF</button>
     <button id="check-btn" title="Compare your audiogram with this patient's expected results">Check</button>
+    <button id="masking-chart-btn" title="Masking chart: tone threshold against masker level, to document the plateau">Masking chart</button>
     <button id="log-btn" title="Presentation log: every tone presented and whether the patient responded">Log</button>
     <button id="options-btn">Options</button>
     <button id="share-btn">Share</button>
@@ -315,6 +316,22 @@
     </div>
     <div class="row log-actions">
       <button id="close-method-dialog-btn" type="button">Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="masking-chart-dialog">
+    <h3>Masking Chart</h3>
+    <p class="log-note">With masking on, every threshold you store (S) is also plotted here against the masker level, and the masked point on the audiogram is updated. Start at the non-test ear's AC and raise the masker 10 dB at a time, storing the threshold at each level; a plateau is at least 3 masker levels in a row with thresholds within 5 dB (after at least 4 levels). The last value you store is what the audiogram shows, so finish on the plateau. Guide lines come from your plotted audiogram: over-masking may start at the test ear's BC + 40 dB (headphones) or + 55 dB (inserts). This chart is kept for this session only.</p>
+    <div class="row log-actions">
+      <label>Curve <select id="masking-chart-series"></select></label>
+      <span id="masking-chart-summary" class="log-summary"></span>
+    </div>
+    <canvas id="masking-chart-canvas" class="masking-chart-canvas"></canvas>
+    <div class="row log-actions">
+      <button id="masking-chart-undo-btn" type="button">Undo point</button>
+      <button id="masking-chart-clear-btn" type="button">Clear curve</button>
+      <button id="masking-chart-png-btn" type="button">Save PNG</button>
+      <button id="close-masking-chart-btn" type="button">Close</button>
     </div>
   </dialog>
 

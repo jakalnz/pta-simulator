@@ -4,7 +4,7 @@ import { isMaskingRequired } from './masking-logic.js';
 import { createTonePlayer } from './tone-player.js';
 import { createNoisePlayer } from './noise-player.js';
 
-export function wireUi({ engine, patientModel, dom, presentationLog }) {
+export function wireUi({ engine, patientModel, dom, presentationLog, onPointStored }) {
   let chartView = 'combined';
   let soundOn = true;
   let hintsOn = true;
@@ -242,11 +242,11 @@ export function wireUi({ engine, patientModel, dom, presentationLog }) {
   // presentations, not automatic consequences of the simulated patient's last
   // response — the clinician judges, then records, at the current dial settings.
   function markNoResponse() {
-    engine.storeThreshold(true);
+    onPointStored?.(engine.storeThreshold(true), engine.getState());
     refreshChart();
   }
   function storeThreshold() {
-    engine.storeThreshold(false);
+    onPointStored?.(engine.storeThreshold(false), engine.getState());
     refreshChart();
   }
   function deletePoint() {

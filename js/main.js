@@ -5,6 +5,7 @@ import { buildThresholdEditor } from './threshold-editor.js';
 import { createPresentationLog } from './presentation-log.js';
 import { checkAudiogram } from './audiogram-check.js';
 import { reviewMethod } from './method-review.js';
+import { createMaskingChartStore, drawMaskingChart, guideLevels, seriesKey, seriesLabel, findPlateau } from './masking-chart.js';
 import { exportJson, importJson } from './json-io.js';
 import { buildShareUrl, readShareUrl, applyShareData } from './share-link.js';
 import { exportPdf } from './pdf-export.js';
@@ -193,7 +194,9 @@ dom.presetSelect.addEventListener('change', async () => {
 });
 
 const presentationLog = createPresentationLog();
-const ui = wireUi({ engine, patientModel, dom, presentationLog });
+// With masking on, each stored threshold is also plotted on the masking
+// chart against the masker level (defined further down).
+const ui = wireUi({ engine, patientModel, dom, presentationLog, onPointStored: (point, state) => plotMaskingPoint(point, state) });
 
 const patientDialog = document.getElementById('patient-dialog');
 const editor = buildThresholdEditor({
@@ -311,6 +314,60 @@ document.getElementById('log-download-btn').addEventListener('click', () => {
   a.remove();
   URL.revokeObjectURL(url);
 });
+
+const maskingChart = createMaskingChartStore();
+const maskingChartDialog = document.getElementById('masking-chart-dialog');
+const maskingChartSelect = document.getElementById('masking-chart-series');
+const maskingChartCanvas = document.getElementById('masking-chart-canvas');
+let maskingChartKey = null;
+
+function renderMaskingChart() {
+  if (!maskingChartDialog.open) return;
+  const keys = maskingChart.keys();
+  if (!keys.includes(maskingChartKey)) maskingChartKey = keys[keys.length - 1] ?? null;
+  maskingChartSelect.innerHTML = '';
+  keys.forEach((k) => maskingChartSelect.appendChild(new Option(seriesLabel(k), k, false, k === maskingChartKey)));
+  maskingChartSelect.disabled = !keys.length;
+  const { transducer } = engine.getState();
+  const points = maskingChartKey ? maskingChart.get(maskingChartKey) : [];
+  const guides = maskingChartKey ? guideLevels(maskingChartKey, engine.getStoredPoints(), transducer) : null;
+  drawMaskingChart(maskingChartCanvas, { key: maskingChartKey, points, guides, transducer });
+  const plateau = findPlateau(points);
+  document.getElementById('masking-chart-summary').textContent = !maskingChartKey
+    ? 'Plot a point to start a curve.'
+    : `${points.length} masker level${points.length === 1 ? '' : 's'}. ${plateau ? `Plateau at ${plateau.threshold} dB HL (masker ${plateau.from}–${plateau.to}).${plateau.risesAfter !== null ? ` Threshold rises from masker ${plateau.risesAfter}: possible over-masking.` : ''}` : 'No plateau yet.'}`;
+  document.getElementById('masking-chart-undo-btn').disabled = !maskingChart.canUndo();
+  document.getElementById('masking-chart-clear-btn').disabled = !maskingChartKey;
+}
+
+function plotMaskingPoint(point, state) {
+  if (!state.maskingOn) return;
+  maskingChartKey = maskingChart.plot(point.ear, point.mode, point.freq, state.maskingLevel, point.level, point.noResponse);
+}
+
+maskingChart.onChange(renderMaskingChart);
+document.getElementById('masking-chart-btn').addEventListener('click', () => {
+  const s = engine.getState();
+  const current = seriesKey(s.testEar, s.testMode, s.freq);
+  if (maskingChart.keys().includes(current)) maskingChartKey = current;
+  maskingChartDialog.showModal();
+  renderMaskingChart();
+});
+maskingChartSelect.addEventListener('change', () => { maskingChartKey = maskingChartSelect.value; renderMaskingChart(); });
+document.getElementById('masking-chart-undo-btn').addEventListener('click', () => maskingChart.undo());
+document.getElementById('masking-chart-clear-btn').addEventListener('click', () => {
+  if (maskingChartKey && window.confirm(`Clear the ${seriesLabel(maskingChartKey)} masking curve?`)) maskingChart.clear(maskingChartKey);
+});
+document.getElementById('masking-chart-png-btn').addEventListener('click', () => {
+  const a = document.createElement('a');
+  const name = patientInfo.name.value.trim() || 'pta';
+  a.href = maskingChartCanvas.toDataURL('image/png');
+  a.download = `${name.replace(/\s+/g, '_')}-masking-${(maskingChartKey ?? 'chart').replace(/\|/g, '-')}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+document.getElementById('close-masking-chart-btn').addEventListener('click', () => maskingChartDialog.close());
 
 const methodDialog = document.getElementById('method-dialog');
 const methodCheckBtn = document.getElementById('method-check-btn');
@@ -583,7 +640,7 @@ wireKeyboardShortcuts({
   engine,
   onStore: () => {
     startTimerOnce();
-    engine.storeThreshold();
+    plotMaskingPoint(engine.storeThreshold(), engine.getState());
     ui.refreshChart();
   },
   onDelete: () => {
